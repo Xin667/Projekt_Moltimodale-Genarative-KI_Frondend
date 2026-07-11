@@ -1,1 +1,1 @@
-# Projekt_Moltimodale-Genarative-KI_Frondend
+# Projekt_Multimodale-Generative-KI_Frontend
