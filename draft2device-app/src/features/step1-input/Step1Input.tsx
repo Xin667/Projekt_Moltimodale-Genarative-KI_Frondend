@@ -1,18 +1,14 @@
 import React, { useState } from 'react';
+import { AudioRecorder } from './AudioRecorder';
 
 export const Step1Input: React.FC = () => {
   const [notes, setNotes] = useState<string>('');
-  const [isRecording, setIsRecording] = useState<boolean>(false);
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setUploadedFile(e.target.files[0].name);
     }
-  };
-
-  const toggleRecording = () => {
-    setIsRecording(!isRecording);
   };
 
   return (
@@ -57,25 +53,12 @@ export const Step1Input: React.FC = () => {
         />
       </div>
 
-      {/* 3. AudioRecorder */}
-      <div className="bg-[#FAF8F4] border border-[#D9D3C7] rounded-xl p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="text-2xl">🎙️</div>
-          <div>
-            <p className="text-sm font-medium text-[#1E2430]">Sprachnotiz aufnehmen</p>
-            <p className="text-xs text-[#5A6172]">
-              {isRecording ? '🔴 Aufnahme läuft...' : 'Erkläre deine Skizze einfach per Sprache.'}
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={toggleRecording}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm
-            ${isRecording ? 'bg-red-600 text-white animate-pulse' : 'bg-white border border-[#D9D3C7] text-[#1E2430] hover:bg-gray-50'}`}
-        >
-          {isRecording ? 'Stoppen' : 'Aufnahme starten'}
-        </button>
+      {/* 3. Echter AudioRecorder */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-[#1E2430]">
+          Ergänzende Sprachnotiz
+        </label>
+        <AudioRecorder />
       </div>
     </div>
   );
