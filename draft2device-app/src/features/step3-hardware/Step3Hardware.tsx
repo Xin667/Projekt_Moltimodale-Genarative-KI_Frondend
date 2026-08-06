@@ -21,7 +21,7 @@ export const Step3Hardware: React.FC = () => {
     {
       id: 'hw-pro',
       name: 'EdgeCompute IoT Node Pro',
-      price: '149,00 €',
+      price: '149,00€',
       description: 'Maximale Rechenpower direkt an der Maschine. Perfekt für Echtzeit-KI-Analysen.',
       specs: 'Quad-Core 1.5GHz, 8GB RAM, 64GB eMMC',
       icon: '🚀'
@@ -29,7 +29,7 @@ export const Step3Hardware: React.FC = () => {
     {
       id: 'hw-eco',
       name: 'SmartNode Core Eco',
-      price: '79,00 €',
+      price: '79,00€',
       description: 'Ultra-energiesparend und kompakt. Ideal für verteilte Sensornetzwerke im Batteriebetrieb.',
       specs: 'Dual-Core 800MHz, 2GB RAM, 16GB MicroSD',
       icon: '🌱'
@@ -66,7 +66,7 @@ export const Step3Hardware: React.FC = () => {
       {/* 1. Primäre Hardware-Auswahl (Karten mit Preis & Info) */}
       <div className="space-y-3">
         <label className="block text-sm font-medium text-[#1E2430]">
-          Primäre Steuerungseinheit wählen (HwOptionCard)
+          Primäre Steuerungseinheit wählen
         </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {primaryHardware.map((hw) => {
@@ -79,12 +79,12 @@ export const Step3Hardware: React.FC = () => {
                   ${isSelected ? 'border-[#C46A2B] bg-[#FAF8F4] ring-2 ring-[#C46A2B]/20' : 'border-[#D9D3C7] bg-white'}`}
               >
                 <div>
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-3">
+                  <div className="flex justify-between items-start mb-1">
+                    <div className="flex items-center gap-2">
                       <span className="text-2xl">{hw.icon}</span>
                       <h3 className="font-bold text-base text-[#1E2430]">{hw.name}</h3>
                     </div>
-                    <span className="text-[#C46A2B] font-bold text-sm bg-[#FAF8F4] px-2 py-1 rounded-md border border-[#D9D3C7]/40">
+                    <span className="text-[#C46A2B] font-bold text-xs md:text-sm lg:text-md bg-[#FAF8F4] px-1 py-1 rounded-md border border-[#D9D3C7]/40">
                       {hw.price}
                     </span>
                   </div>
@@ -105,7 +105,7 @@ export const Step3Hardware: React.FC = () => {
       <div className="space-y-3">
         <div>
           <label className="block text-sm font-medium text-[#1E2430]">
-            Sekundäre Hardware & Erweiterungen (SecondaryHwList)
+            Sekundäre Hardware & Erweiterungen
           </label>
           <p className="text-xs text-[#5A6172] mt-0.5">
             Optionale Komponenten, die automatisch in die Pin-Belegung eingerechnet werden.
