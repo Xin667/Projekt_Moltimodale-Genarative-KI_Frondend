@@ -84,7 +84,7 @@ export const Step2Klaerung: React.FC = () => {
         {/* LueckeChoice & Offen Lassen */}
         <div className="space-y-3">
           <label className="block text-sm font-medium text-[#1E2430]">
-            Lücke B: primäres UI-Thema
+            Lücke B: primäres UI-Thema (Single-Choice)
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <label className={`flex items-center gap-3 border p-3 rounded-xl cursor-pointer transition-colors ${choiceValue === 'light' && !isOpenPrompt ? 'border-[#C46A2B] bg-[#FAF8F4]' : 'border-[#D9D3C7]'} ${isOpenPrompt ? 'opacity-40 cursor-not-allowed' : ''}`}>

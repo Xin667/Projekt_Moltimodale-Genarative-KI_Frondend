@@ -1,35 +1,31 @@
 import React from 'react';
 
 interface AppShellProps {
-  children: React.ReactNode;
-  navigation: React.ReactNode; // Hier landet der Stepper!
+  sidebarLeft: React.ReactNode;
+  mainContent: React.ReactNode;
+  sidebarRight: React.ReactNode;
 }
 
-export function AppShell({ children, navigation }: AppShellProps) {
+export const AppShell: React.FC<AppShellProps> = ({
+  sidebarLeft,
+  mainContent,
+  sidebarRight,
+}) => {
   return (
-    <div className="min-h-screen bg-[#FAF8F4] flex flex-col font-sans antialiased text-[#1E2430]">
-      {/* Das 3-Spalten-Layout über Grid */}
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 max-w-[1800px] w-full mx-auto">
-        
-        {/* LINKE SPALTE: DEIN Stepper als Navigation (3 von 12 Spalten) */}
-        <aside className="lg:col-span-3 bg-white p-6 rounded-2xl shadow-sm border border-[#D9D3C7]/40 flex flex-col">
-          {navigation}
+    <div className="min-h-screen bg-[#FAF8F4] text-[#1E2430] antialiased selection:bg-orange-200">
+      <div className="mx-auto max-w-[1600px] min-h-screen grid grid-cols-1 lg:grid-cols-[240px_1fr_320px] divide-x divide-[#D9D3C7]">
+        <aside className="bg-[#FAF8F4]/85 backdrop-blur-sm p-6 overflow-y-auto z-10">
+          {sidebarLeft}
         </aside>
-
-        {/* MITTLERE SPALTE: Der Hauptarbeitsbereich für die Schritte (6 von 12 Spalten) */}
-        <section className="lg:col-span-6 bg-white p-8 rounded-2xl shadow-md border border-[#D9D3C7]/40 min-h-[700px]">
-          {children}
-        </section>
-
-        {/* RECHTE SPALTE: KI-Assistent & Empfehlungen (3 von 12 Spalten) */}
-        <aside className="lg:col-span-3 bg-white p-6 rounded-2xl shadow-sm border border-[#D9D3C7]/40 flex flex-col gap-4">
-          <h3 className="font-bold text-lg text-[#1E2430] border-b border-[#D9D3C7] pb-2">KI-Assistent</h3>
-          <div className="bg-orange-50/40 text-sm p-4 rounded-xl border border-orange-100/50 leading-relaxed">
-            "Ich helfe dir dabei, deine Skizze in echten Code zu verwandeln. Lass uns mit Schritt 1 starten!"
+        <main className="bg-white p-8 overflow-y-auto pb-24">
+          <div className="max-w-3xl mx-auto">
+            {mainContent}
           </div>
+        </main>
+        <aside className="bg-white/60 backdrop-blur-sm p-6 overflow-y-auto hidden xl:block">
+          {sidebarRight}
         </aside>
-
-      </main>
+      </div>
     </div>
   );
-}
+};

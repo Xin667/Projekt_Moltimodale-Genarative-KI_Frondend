@@ -33,19 +33,7 @@ export const Stepper: React.FC<StepperProps> = ({
         </h1>
         <p className="text-xs font-mono text-[#5A6172] mt-1">Skizze → Code</p>
       </div>
-      <nav aria-label="Projektfortschritt" className="flex
-    w-full
-    flex-row
-    flex-nowrap
-    gap-2
-    overflow-x-auto
-    pb-2
-
-    lg:flex-col
-    lg:overflow-x-visible
-    lg:pb-0
-
-">
+      <nav aria-label="Projektfortschritt" className="flex flex-col gap-1">
         {steps.map((step) => {
           const isActive = step.number === currentStep;
           const isDone = step.number < currentStep && step.number <= unlockedStep;
