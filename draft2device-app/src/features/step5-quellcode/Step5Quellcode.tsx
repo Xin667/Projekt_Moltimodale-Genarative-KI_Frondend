@@ -64,7 +64,7 @@ void loop() {
               activeTab === 'simulation' ? 'bg-[#1E2430] text-white' : 'bg-gray-100 text-[#5A6172] hover:bg-gray-200'
             }`}
           >
-            🔌 Schaltung (Simulation)
+            Schaltung (Simulation)
           </button>
           <button
             type="button"
@@ -73,7 +73,7 @@ void loop() {
               activeTab === 'code' ? 'bg-[#1E2430] text-white' : 'bg-gray-100 text-[#5A6172] hover:bg-gray-200'
             }`}
           >
-            💻 Code / Logik <span className="opacity-60 text-[10px] ml-0.5">(main.cpp)</span>
+            Code / Logik <span className="opacity-60 text-[10px] ml-0.5">(main.cpp)</span>
           </button>
           <button
             type="button"
@@ -82,7 +82,7 @@ void loop() {
               activeTab === 'json' ? 'bg-[#1E2430] text-white' : 'bg-gray-100 text-[#5A6172] hover:bg-gray-200'
             }`}
           >
-            ⚙️ Schaltplan <span className="opacity-60 text-[10px] ml-0.5">(diagram.json)</span>
+            Schaltplan <span className="opacity-60 text-[10px] ml-0.5">(diagram.json)</span>
           </button>
         </div>
 
@@ -99,7 +99,7 @@ void loop() {
 
       {/* Kontextualer Aufklärungs-Banner für Neulinge */}
       <div className="bg-[#FAF8F4] border border-[#D9D3C7] rounded-lg p-2.5 text-xs text-[#5A6172] flex items-center gap-2">
-        <span className="shrink-0">💡</span>
+        <span className="shrink-0"></span>
         <span>
           {activeTab === 'simulation' && (
             <><strong>Live-Simulation:</strong> Klicke auf Elemente (z. B. Taster), um das Verhalten direkt auszuprobieren.</>
