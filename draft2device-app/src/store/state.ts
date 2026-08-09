@@ -12,6 +12,7 @@ import type { AnalyzeResult, AnswersMap, OpenQuestion } from '@/api/types'
 export type ProjectStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 export interface ProjectState {
+  // --- Bestehende Server & API Felder ---
   projectId: string | null
   structure: AnalyzeResult | null
   status: ProjectStatus
@@ -19,20 +20,41 @@ export interface ProjectState {
   /** Zählt jede Aktualisierung der Struktur — entspricht dem "v3" in der IR-Leiste. */
   version: number
 
+  // --- NEU: Formular-Eingaben aus den Schritten 1–4 ---
+  sketchFile: File | null
+  notes: string
+  performancePriority: number
+  uiTheme: 'light' | 'dark' | ''
+  openPrompt: string
+  primaryHardwareId: string
+  secondaryHardwareIds: string[]
+  structureAdjustments: string
+
+  // --- Bestehende Setters ---
   setProjectId: (id: string | null) => void
   setStructure: (structure: AnalyzeResult) => void
   setStatus: (status: ProjectStatus) => void
   setError: (error: ApiError | null) => void
   reset: () => void
 
-  /** Legt bei Bedarf ein Projekt an und liefert dessen id. Wirft bei Fehlern. */
+  // --- NEU: Setters für Schritt 1–4 ---
+  setSketchFile: (file: File | null) => void
+  setNotes: (notes: string) => void
+  setPerformancePriority: (val: number) => void
+  setUiTheme: (theme: 'light' | 'dark' | '') => void
+  setOpenPrompt: (prompt: string) => void
+  setPrimaryHardwareId: (id: string) => void
+  setSecondaryHardwareIds: (ids: string[]) => void
+  toggleSecondaryHardware: (id: string) => void
+  setStructureAdjustments: (adj: string) => void
+
+  // --- API Calls ---
   startProject: () => Promise<string>
-  /** Kompletter Analyse-Durchlauf. Wirft nicht — Fehler landen in `error`. */
-  submitAnalyze: (input: {
-    message: string
+  /** Überarbeitete submitAnalyze: Kann optional ohne Parameter aufgerufen werden und nutzt dann die Daten aus dem Store. */
+  submitAnalyze: (input?: {
+    message?: string
     imageFile?: File | null
   }) => Promise<AnalyzeResult | null>
-  /** Antworten auf offene Fragen als Text zurück an /analyze. Wirft nicht. */
   submitAnswers: (
     questions: OpenQuestion[],
     answers: AnswersMap,
@@ -41,16 +63,43 @@ export interface ProjectState {
 }
 
 const initialState = {
+  // API State
   projectId: null,
   structure: null,
   status: 'idle',
   error: null,
   version: 0,
-} satisfies Pick<ProjectState, 'projectId' | 'structure' | 'status' | 'error' | 'version'>
+
+  // NEU: Schritt 1-4 Initialwerte
+  sketchFile: null,
+  notes: '',
+  performancePriority: 50,
+  uiTheme: '',
+  openPrompt: '',
+  primaryHardwareId: '',
+  secondaryHardwareIds: [],
+  structureAdjustments: '',
+} satisfies Pick<
+  ProjectState,
+  | 'projectId'
+  | 'structure'
+  | 'status'
+  | 'error'
+  | 'version'
+  | 'sketchFile'
+  | 'notes'
+  | 'performancePriority'
+  | 'uiTheme'
+  | 'openPrompt'
+  | 'primaryHardwareId'
+  | 'secondaryHardwareIds'
+  | 'structureAdjustments'
+>
 
 export const useProjectStore = create<ProjectState>()((set, get) => ({
   ...initialState,
 
+  // Bestehende Setters
   setProjectId: (projectId) => set({ projectId }),
 
   setStructure: (structure) =>
@@ -66,6 +115,27 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
   setError: (error) => set({ error, status: error ? 'error' : get().status }),
 
+  // NEU: Setters für Formularfelder
+  setSketchFile: (sketchFile) => set({ sketchFile }),
+  setNotes: (notes) => set({ notes }),
+  setPerformancePriority: (performancePriority) => set({ performancePriority }),
+  setUiTheme: (uiTheme) => set({ uiTheme }),
+  setOpenPrompt: (openPrompt) => set({ openPrompt }),
+  setPrimaryHardwareId: (primaryHardwareId) => set({ primaryHardwareId }),
+  setSecondaryHardwareIds: (secondaryHardwareIds) => set({ secondaryHardwareIds }),
+
+  toggleSecondaryHardware: (id) =>
+    set((state) => {
+      const exists = state.secondaryHardwareIds.includes(id)
+      return {
+        secondaryHardwareIds: exists
+          ? state.secondaryHardwareIds.filter((item) => item !== id)
+          : [...state.secondaryHardwareIds, id],
+      }
+    }),
+
+  setStructureAdjustments: (structureAdjustments) => set({ structureAdjustments }),
+
   reset: () => {
     resetMockState()
     set({ ...initialState })
@@ -80,12 +150,32 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     return projectId
   },
 
-  submitAnalyze: async ({ message, imageFile }) => {
+  submitAnalyze: async (input) => {
     set({ status: 'loading', error: null })
 
     try {
-      const projectId = await get().startProject()
-      const structure = await analyze({ projectId, message, imageFile })
+      const state = get()
+      const projectId = await state.startProject()
+
+      // Kombiniert alle Eingaben aus Schritt 1 bis 4 automatisch zu einer Nachricht
+      const combinedMessage =
+        input?.message ||
+        [
+          state.notes && `Notizen: ${state.notes}`,
+          state.openPrompt && `Anforderung: ${state.openPrompt}`,
+          state.primaryHardwareId && `Hardware: ${state.primaryHardwareId}`,
+          state.secondaryHardwareIds.length > 0 &&
+            `Erweiterungen: ${state.secondaryHardwareIds.join(', ')}`,
+          state.structureAdjustments && `Anpassungen: ${state.structureAdjustments}`,
+        ]
+          .filter(Boolean)
+          .join('\n') ||
+        'Standard-Analyse gestartet'
+
+      // Nimmt das manuell übergebene Bild ODER die hochgeladene Skizze aus Schritt 1
+      const imageFile = input?.imageFile !== undefined ? input.imageFile : state.sketchFile
+
+      const structure = await analyze({ projectId, message: combinedMessage, imageFile })
       get().setStructure(structure)
       return structure
     } catch (caught) {
@@ -110,18 +200,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   },
 }))
 
-// ---------------------------------------------------------------------------
-// Vanilla-Zugriff für Code außerhalb von React.
-// ---------------------------------------------------------------------------
-
+// Vanilla-Zugriff
 export const getState = useProjectStore.getState
-
-/**
- * Zustand-Semantik: nimmt ein *Teil*-Objekt des States.
- * Für die Struktur bitte `getState().setStructure(...)` verwenden — das pflegt
- * zusätzlich version, status und projectId.
- */
 export const setState = useProjectStore.setState
-
-/** Liefert die Unsubscribe-Funktion zurück. */
 export const subscribe = useProjectStore.subscribe

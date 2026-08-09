@@ -23,3 +23,13 @@ dist-ssr
 *.sln
 *.sw?
 /CLAUDE.md
+
+# Geheimnisse & Keys ignorieren
+src/api/v2/key.py
+*.env
+.env*
+
+# Python Cache & DB ignorieren
+__pycache__/
+*.pyc
+*.db
