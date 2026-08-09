@@ -36,7 +36,7 @@ void loop() {
   };
 
   return (
-    <div className="space-y-6 w-full max-w-full overflow-hidden">
+    <div className="space-y-4 w-full max-w-full overflow-hidden">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold font-sans text-[#1E2430]">
@@ -45,7 +45,7 @@ void loop() {
         <p className="text-sm text-[#5A6172] mt-1 flex items-center justify-between gap-1">
           <span>
             {sampleProject.title ? `${sampleProject.title} — ` : ''}
-            Beispiel-Rendering aus einem Projekt-JSON.
+            Interaktive Vorschau deines Hardware-Setups und Quellcodes.
           </span>
           <InfoTooltip 
             text="Hier wird die Schaltung interaktiv visualisiert und der Quellcode bereitgestellt." 
@@ -54,7 +54,7 @@ void loop() {
         </p>
       </div>
 
-      {/* Navigation Tabs (Sauber getrennt) */}
+      {/* Navigation Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#D9D3C7] pb-3">
         <div className="flex gap-2">
           <button
@@ -73,7 +73,7 @@ void loop() {
               activeTab === 'code' ? 'bg-[#1E2430] text-white' : 'bg-gray-100 text-[#5A6172] hover:bg-gray-200'
             }`}
           >
-            📄 main.cpp
+            💻 Code / Logik <span className="opacity-60 text-[10px] ml-0.5">(main.cpp)</span>
           </button>
           <button
             type="button"
@@ -82,7 +82,7 @@ void loop() {
               activeTab === 'json' ? 'bg-[#1E2430] text-white' : 'bg-gray-100 text-[#5A6172] hover:bg-gray-200'
             }`}
           >
-            ⚙️ diagram.json
+            ⚙️ Schaltplan <span className="opacity-60 text-[10px] ml-0.5">(diagram.json)</span>
           </button>
         </div>
 
@@ -92,9 +92,25 @@ void loop() {
             onClick={handleCopy}
             className="text-xs font-medium text-[#C46A2B] bg-[#FAF8F4] border border-[#D9D3C7] px-3 py-1 rounded-lg hover:bg-white transition-colors"
           >
-            {copied ? '✓ Kopiert!' : 'Code kopieren'}
+            {copied ? '✓ Kopiert!' : activeTab === 'json' ? 'JSON kopieren' : 'Code kopieren'}
           </button>
         )}
+      </div>
+
+      {/* Kontextualer Aufklärungs-Banner für Neulinge */}
+      <div className="bg-[#FAF8F4] border border-[#D9D3C7] rounded-lg p-2.5 text-xs text-[#5A6172] flex items-center gap-2">
+        <span className="shrink-0">💡</span>
+        <span>
+          {activeTab === 'simulation' && (
+            <><strong>Live-Simulation:</strong> Klicke auf Elemente (z. B. Taster), um das Verhalten direkt auszuprobieren.</>
+          )}
+          {activeTab === 'code' && (
+            <><strong>Programm-Code (C++):</strong> Das Steuerungsprogramm. Es bestimmt, <em>wie</em> sich die Hardware verhalten soll.</>
+          )}
+          {activeTab === 'json' && (
+            <><strong>Schaltplan-Daten (JSON):</strong> Die technische Bauanleitung. Sie beschreibt, <em>welche</em> Bauteile wie verbunden sind.</>
+          )}
+        </span>
       </div>
 
       {/* Tab-Inhalte */}
@@ -129,7 +145,7 @@ void loop() {
         </div>
       )}
 
-      {/* Terminal / Serial Output (Kompakt & abgesichert) */}
+      {/* Terminal / Serial Output */}
       <div className="bg-slate-900 text-emerald-400 font-mono text-xs p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0 overflow-hidden">
           <span className="text-slate-500 font-semibold shrink-0">Serial Output:</span>
