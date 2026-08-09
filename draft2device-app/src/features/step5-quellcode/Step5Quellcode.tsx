@@ -105,7 +105,7 @@ void loop() {
             <><strong>Live-Simulation:</strong> Klicke auf Elemente (z. B. Taster), um das Verhalten direkt auszuprobieren.</>
           )}
           {activeTab === 'code' && (
-            <><strong>Programm-Code (C++):</strong> Das Steuerungsprogramm. Es bestimmt, <em>wie</em> sich die Hardware verhalten soll.</>
+            <><strong>Programm-Code:</strong> Das Steuerungsprogramm. Es bestimmt, <em>wie</em> sich die Hardware verhalten soll.</>
           )}
           {activeTab === 'json' && (
             <><strong>Schaltplan-Daten (JSON):</strong> Die technische Bauanleitung. Sie beschreibt, <em>welche</em> Bauteile wie verbunden sind.</>
