@@ -49,6 +49,7 @@ def init_db() -> None:
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS projects (
             id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
             created_at TEXT NOT NULL
         )
     """)
@@ -96,16 +97,17 @@ def init_db() -> None:
 # PROJECTS
 # =====================================================================
  
-def create_project() -> str:
+def create_project(name: str) -> str:
     # Legt ein neues, leeres Projekt an und gibt dessen neue (zufällige) ID zurück.
     project_id = str(uuid.uuid4())  # z.B. "a1b2c3d4-...-...-..."
+    name = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
  
     connection = _get_connection()
     cursor = connection.cursor()
     cursor.execute(
-        "INSERT INTO projects (id, created_at) VALUES (?, ?)",
-        (project_id, now),
+        "INSERT INTO projects (id, name, created_at) VALUES (?, ?, ?)",
+        (project_id, name, now),
     )
     connection.commit()
     connection.close()

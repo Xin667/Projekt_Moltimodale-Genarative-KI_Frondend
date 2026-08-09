@@ -53,7 +53,7 @@ export function Step4Struktur() {
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold font-sans text-[#1E2430]">
-          Schritt 4 · Logik- &amp; Hardware-Struktur
+          Schritt 4: Logik- &amp; Hardware-Struktur
         </h2>
         <p className="text-sm text-[#5A6172] mt-1">
           Klicke auf ein Bauteil für Details. Die Verbindungen entsprechen den

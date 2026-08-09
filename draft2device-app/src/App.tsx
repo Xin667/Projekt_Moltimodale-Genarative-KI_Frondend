@@ -2,9 +2,10 @@ import { useState } from 'react';
 
 import { AppShell } from './app/AppShell';
 import { Stepper } from './app/Stepper';
+import { NavStepper } from './app/Navigation'; 
 import { useAppStore } from './app/store';
-
 import { StartPage } from './features/startpage';
+import { ProjectHistory } from './features/project-history';
 import { Step1Input } from './features/step1-input/Step1Input';
 import { Step2Klaerung } from './features/step2-klaerung/Step2Klaerung';
 import { Step3Hardware } from './features/step3-hardware/Step3Hardware';
@@ -20,48 +21,53 @@ type CreateProjectResponse = {
 
 export default function AppShowcase() {
   const { currentStep, maxStepReached, setCurrentStep } = useAppStore();
-
+const [currentProjectId, setCurrentProjectId] = useState<number | null>(
+  null,
+);
   const [hasStarted, setHasStarted] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
 
   async function handleStart() {
-    setIsStarting(true);
-    setStartError(null);
+  setIsStarting(true);
+  setStartError(null);
 
-    try {
-      const response = await fetch('/projects', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-        },
-      });
+  try {
+    const response = await fetch('/projects', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+      },
+    });
 
-      if (!response.ok) {
-        throw new Error(
-          `Das Projekt konnte nicht erstellt werden. Status: ${response.status}`,
-        );
-      }
-
-      const data: CreateProjectResponse = await response.json();
-
-      console.log('Projekt-ID:', data.project_id);
-
-      sessionStorage.setItem('projectId', String(data.project_id));
-
-      setHasStarted(true);
-    } catch (error) {
-      console.error(error);
-
-      setStartError(
-        error instanceof Error
-          ? error.message
-          : 'Das Projekt konnte nicht erstellt werden.',
+    if (!response.ok) {
+      throw new Error(
+        `Das Projekt konnte nicht erstellt werden. Status: ${response.status}`,
       );
-    } finally {
-      setIsStarting(false);
     }
+
+    const data: CreateProjectResponse = await response.json();
+
+    setCurrentProjectId(data.project_id);
+
+    sessionStorage.setItem(
+      'projectId',
+      String(data.project_id),
+    );
+
+    setHasStarted(true);
+  } catch (error) {
+    console.error(error);
+
+    setStartError(
+      error instanceof Error
+        ? error.message
+        : 'Das Projekt konnte nicht erstellt werden.',
+    );
+  } finally {
+    setIsStarting(false);
   }
+}
 
   if (!hasStarted) {
     return (
@@ -73,17 +79,46 @@ export default function AppShowcase() {
     );
   }
 
+  function handleSelectProject(projectId: number) {
+  setCurrentProjectId(projectId);
+
+  sessionStorage.setItem(
+    'projectId',
+    String(projectId),
+  );
+
+  setHasStarted(true);
+}
+
   return (
     <AppShell
       navigation={
-        <Stepper
+        <NavStepper
           currentStep={currentStep}
           unlockedStep={maxStepReached}
           onStepClick={setCurrentStep}
         />
       }
+      projects={
+        <div>
+        <div className="mb-6 border-b border-[#D9D3C7] pb-4">
+        <h1 className="font-sans text-xl font-bold tracking-tight text-[#1E2430]">
+          Draft<span className="text-[#C46A2B]">2</span>Device
+        </h1>
+        <p className="text-xs font-mono text-[#5A6172] mt-1">Skizze → Code</p>
+      </div>
+        <ProjectHistory
+          currentProjectId={currentProjectId}
+          onSelectProject={handleSelectProject}
+          onNewProject={() => {
+            setCurrentProjectId(null);
+            setHasStarted(false);
+          }}
+        />
+        </div>
+      }
     >
-      <div className="pb-6">
+      <div className="flex flex-row items-center gap-6 pb-6">
         {currentStep === 1 && <Step1Input />}
         {currentStep === 2 && <Step2Klaerung />}
         {currentStep === 3 && <Step3Hardware />}

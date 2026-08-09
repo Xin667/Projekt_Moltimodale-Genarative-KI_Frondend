@@ -7,9 +7,32 @@ export type ActorType = 'Human' | 'Object' | 'Animal' | 'Other'
 export type TriggerType = 'Sensor' | 'User-Interaction' | 'Time/Timer' | 'Other'
 export type QuestionType = 'SingleChoice' | 'MultipleChoice' | 'Text'
 
+export interface CreateProject {
+  project_name: string
+}
+
+export interface GetProjectID {
+  project_id: string
+}
+
+export interface Project {
+  id: string
+  name: string
+  created_at: string
+  updated_at: string
+}
+
 export interface ProjectMetadata {
   working_title: string
   core_intention: string
+}
+
+export interface ProjectListResponse {
+  projects: Project[];
+}
+
+export interface CreateProjectResponse {
+  project_id: number;
 }
 
 export interface ActorEntity {
