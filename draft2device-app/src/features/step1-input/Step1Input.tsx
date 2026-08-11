@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { AudioRecorder } from './AudioRecorder';
 import { useProjectStore } from '@/store/state';
 import { useAppStore } from '@/app/store';
 
@@ -45,7 +44,7 @@ export const Step1Input: React.FC = () => {
           Schritt 1: Projekt-Input bereitstellen
         </h2>
         <p className="text-sm text-[#5A6172] mt-1">
-          Lade eine Skizze hoch, füge Notizen hinzu oder nimm eine Sprachnotiz auf, um das KI-Modell zu füttern.
+          Lade eine Skizze hoch und füge Notizen hinzu, um das KI-Modell zu füttern.
         </p>
       </div>
 
@@ -81,14 +80,6 @@ export const Step1Input: React.FC = () => {
           rows={5}
           className="w-full rounded-xl border border-[#D9D3C7] p-4 text-sm focus:outline-none focus:border-[#C46A2B] resize-none"
         />
-      </div>
-
-      {/* 3. Echter AudioRecorder */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-[#1E2430]">
-          Ergänzende Sprachnotiz
-        </label>
-        <AudioRecorder />
       </div>
 
       {/* Fehleranzeige */}

@@ -99,3 +99,132 @@
     @apply bg-background text-foreground font-sans;
   }
 }
+
+/* ---------- IR Rail (rechte Leiste — Single Point of Truth) ---------- */
+.ir-rail {
+  padding: 28px 20px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(2px);
+}
+.ir-rail h3 {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+  margin-bottom: 4px;
+}
+.ir-rail .ver {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-copper);
+  margin-bottom: 18px;
+}
+.sm {
+  position: relative;
+  padding-left: 18px;
+}
+.sm::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 8px;
+  bottom: 8px;
+  width: 1.5px;
+  background: var(--color-line);
+}
+.state {
+  position: relative;
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 22px;
+  font-size: 12px;
+  transition: 0.3s;
+}
+.state::before {
+  content: "";
+  position: absolute;
+  left: -15.5px;
+  top: 14px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-line);
+  border: 1.5px solid var(--color-paper);
+}
+.state.hl {
+  border-color: var(--color-copper);
+  box-shadow: 0 0 0 1px var(--color-copper);
+}
+.state.hl::before {
+  background: var(--color-copper);
+}
+.state h5 {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 3px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.sid {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--color-ink-soft);
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.state .trig {
+  color: var(--color-ink-soft);
+  font-size: 11.5px;
+}
+.state .act {
+  margin-top: 5px;
+  font-size: 11.5px;
+}
+.state .act span {
+  display: block;
+  padding: 1px 0;
+}
+.led {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: baseline;
+}
+.led.red {
+  background: var(--color-signal-red);
+}
+.led.green {
+  background: var(--color-signal-green);
+}
+.led.off {
+  background: var(--color-line);
+}
+.ir-patch {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--color-signal-green);
+  margin-top: 14px;
+  opacity: 0;
+  transition: 0.4s;
+}
+.ir-patch.show {
+  opacity: 1;
+}
+.ir-empty {
+  font-size: 12px;
+  color: var(--color-ink-soft);
+  font-style: italic;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
