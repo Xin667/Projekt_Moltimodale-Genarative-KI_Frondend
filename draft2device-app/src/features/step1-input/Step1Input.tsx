@@ -22,7 +22,6 @@ export const Step1Input: React.FC = () => {
           <span>
             Lade eine Skizze hoch, füge Notizen hinzu oder nimm eine Sprachnotiz auf, um das KI-Modell zu füttern.
           </span>
-          <InfoTooltip text="Je mehr Kontext du bereitstellst (z. B. Skizze + erklärende Notiz), desto präziser wird der generierte Schaltplan und Code." />
         </p>
       </div>
 
@@ -42,7 +41,7 @@ export const Step1Input: React.FC = () => {
           <p className="text-xs text-[#5A6172] flex items-center justify-center">
             <span>PNG, JPG bis zu 10MB</span>
             <span className="pointer-events-auto z-20">
-              <InfoTooltip text="Vergewissere dich, dass Schalter, Labels, Sensoren oder Anzeigen auf der Skizze gut lesbar sind." />
+             
             </span>
           </p>
         </div>

@@ -20,7 +20,7 @@ export const Step2Klaerung: React.FC = () => {
             Überprüfe die extrahierte Struktur und fülle die notwendigen Systemlücken aus.
           </span>
           {/* HOVER 1: Untertitel */}
-          <InfoTooltip text="Die KI hat deine Skizze in 4 Blöcke zerlegt. Alles, was auf der Skizze nicht eindeutig war, wird darunter als Systemlücke geklärt." />
+          
         </p>
       </div>
 
@@ -66,7 +66,7 @@ export const Step2Klaerung: React.FC = () => {
         <h3 className="font-bold text-lg text-[#1E2430] flex items-center">
           <span>Systemlücken präzisieren</span>
           {/* HOVER 2: Überschrift Systemlücken */}
-          <InfoTooltip text="Systemlücken entstehen, wenn wichtige technische Details auf der Handzeichnung fehlen. Stelle sie hier ein oder überlasse sie der KI." />
+          
         </h3>
 
         {/* LueckeSlider */}
@@ -74,8 +74,6 @@ export const Step2Klaerung: React.FC = () => {
           <div className="flex justify-between text-sm font-medium text-[#1E2430]">
             <label className="flex items-center">
               <span>Lücke A: Performance-Priorität (Slider)</span>
-              {/* HOVER 3: Slider */}
-              <InfoTooltip text="Ein hoher Wert optimiert den Code für maximale Geschwindigkeit (z.B. KI-Analysen). Ein niedriger Wert spart Energie für Akkubetrieb." />
             </label>
             <span className="text-[#C46A2B] font-bold">{sliderValue}%</span>
           </div>
@@ -152,8 +150,8 @@ export const Step2Klaerung: React.FC = () => {
       <div className="space-y-2">
         <label className="text-sm font-medium text-[#1E2430] flex items-center">
           <span>Offener Prompt (Manuelle Spezifikation für KI-Generierung)</span>
-          {/* HOVER 4: Offener Prompt */}
-          <InfoTooltip text="Schreibe hier Freitext-Anweisungen hinein." />
+          
+          
         </label>
         <textarea
           value={openPromptText}
