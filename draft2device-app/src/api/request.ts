@@ -1,4 +1,19 @@
-import { CreateProject, GetProjectID, Project } from "./types"
+import type { CreateProject, GetProjectID, Project, ProjectListResponse } from "./types"
+import { useFetch } from "./store"
+
+
+/// Liste aller Projekte abrufen
+export const useListProjects = () => {
+  const { commonFetch, isLoading, data } = useFetch<ProjectListResponse>({
+    url: "http://127.0.0.1:8000/projects",
+    method: "GET",
+  });
+
+  const listProjects = () => commonFetch({});
+
+  return { listProjects, isLoading, data };
+};
+
 
 
 export const useGetProject = () => {
@@ -8,11 +23,12 @@ export const useGetProject = () => {
  // that is what this endpoint will always return. 
   const { commonFetch, isLoading, data } = useFetch<Project>({
     url: "http://127.0.0.1:8000/projects",
+    method: "GET",
   });
 
   // using typescript to define the input here means no mistakes can be
   // made downstream when actually using our API layer
-  const getProject = (input: GetProjectID) => commonFetch({ input, method: "GET" });
+  const getProject = (input: GetProjectID) => commonFetch({ input });
 
   return { getProject, isLoading, data };
 };
@@ -20,9 +36,10 @@ export const useGetProject = () => {
 export const useCreateProject = () => {
   const { commonFetch, isLoading, data } = useFetch<Project>({
     url: "http://127.0.0.1:8000/projects",
+    method: "POST",
   });
 
-  const createProject = (input: CreateProject ) => commonFetch({ input, method: "POST" });
+  const createProject = (input: CreateProject ) => commonFetch({ input });
 
   return { createProject, isLoading, data };
 };
