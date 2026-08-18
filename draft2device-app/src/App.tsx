@@ -1,9 +1,11 @@
 import { useState } from 'react';
 
 import { AppShell } from './app/AppShell';
-import { Stepper } from './app/Stepper';
-import { NavStepper } from './app/Navigation'; 
+import { NavStepper } from './app/Navigation';
 import { useAppStore } from './app/store';
+import { useProjectStore } from '@/store/state';
+import { toApiError } from '@/api/api';
+
 import { StartPage } from './features/startpage';
 import { ProjectHistory } from './features/project-history';
 import { Step1Input } from './features/step1-input/Step1Input';
@@ -15,59 +17,36 @@ import { Step6Ergebnis } from './features/step6-ergebnis/Step6Ergebnis';
 
 import { Button } from './components/ui/button';
 
-type CreateProjectResponse = {
-  project_id: number;
-};
-
 export default function AppShowcase() {
   const { currentStep, maxStepReached, setCurrentStep } = useAppStore();
-const [currentProjectId, setCurrentProjectId] = useState<number | null>(
-  null,
-);
+  const startProject = useProjectStore((s) => s.startProject);
+  const setProjectId = useProjectStore((s) => s.setProjectId);
+
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
 
   async function handleStart() {
-  setIsStarting(true);
-  setStartError(null);
+    setIsStarting(true);
+    setStartError(null);
 
-  try {
-    const response = await fetch('/projects', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-      },
-    });
+    try {
+      setProjectId(null);
+      const projectId = await startProject();
 
-    if (!response.ok) {
-      throw new Error(
-        `Das Projekt konnte nicht erstellt werden. Status: ${response.status}`,
-      );
+      setCurrentProjectId(projectId);
+      sessionStorage.setItem('projectId', projectId);
+      setRefreshTrigger((value) => value + 1);
+      setHasStarted(true);
+    } catch (error) {
+      console.error(error);
+      setStartError(toApiError(error).message);
+    } finally {
+      setIsStarting(false);
     }
-
-    const data: CreateProjectResponse = await response.json();
-
-    setCurrentProjectId(data.project_id);
-
-    sessionStorage.setItem(
-      'projectId',
-      String(data.project_id),
-    );
-
-    setHasStarted(true);
-  } catch (error) {
-    console.error(error);
-
-    setStartError(
-      error instanceof Error
-        ? error.message
-        : 'Das Projekt konnte nicht erstellt werden.',
-    );
-  } finally {
-    setIsStarting(false);
   }
-}
 
   if (!hasStarted) {
     return (
@@ -79,16 +58,14 @@ const [currentProjectId, setCurrentProjectId] = useState<number | null>(
     );
   }
 
-  function handleSelectProject(projectId: number) {
-  setCurrentProjectId(projectId);
+  function handleSelectProject(projectId: string) {
+    setProjectId(projectId);
+    setCurrentProjectId(projectId);
 
-  sessionStorage.setItem(
-    'projectId',
-    String(projectId),
-  );
+    sessionStorage.setItem('projectId', projectId);
 
-  setHasStarted(true);
-}
+    setHasStarted(true);
+  }
 
   return (
     <AppShell
@@ -101,24 +78,23 @@ const [currentProjectId, setCurrentProjectId] = useState<number | null>(
       }
       projects={
         <div>
-        <div className="mb-6 border-b border-[#D9D3C7] pb-4">
-        <h1 className="font-sans text-xl font-bold tracking-tight text-[#1E2430]">
-          Draft<span className="text-[#C46A2B]">2</span>Device
-        </h1>
-        <p className="text-xs font-mono text-[#5A6172] mt-1">Skizze → Code</p>
-      </div>
-        <ProjectHistory
-          currentProjectId={currentProjectId}
-          onSelectProject={handleSelectProject}
-          onNewProject={() => {
-            setCurrentProjectId(null);
-            setHasStarted(false);
-          }}
-        />
+          <div className="mb-6 border-b border-[#D9D3C7] pb-4">
+            <h1 className="font-sans text-xl font-bold tracking-tight text-[#1E2430]">
+              Draft<span className="text-[#C46A2B]">2</span>Device
+            </h1>
+            <p className="mt-1 font-mono text-xs text-[#5A6172]">Skizze → Code</p>
+          </div>
+          <ProjectHistory
+            currentProjectId={currentProjectId}
+            onSelectProject={handleSelectProject}
+            onCreateProject={handleStart}
+            isCreating={isStarting}
+            refreshTrigger={refreshTrigger}
+          />
         </div>
       }
     >
-      <div className="flex flex-row items-center gap-6 pb-6">
+      <div className="pb-6">
         {currentStep === 1 && <Step1Input />}
         {currentStep === 2 && <Step2Klaerung />}
         {currentStep === 3 && <Step3Hardware />}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import "@wokwi/elements";
-
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 
 const nodeTexts = {
   sensor:
@@ -26,44 +26,27 @@ export function Step4Struktur() {
     setSelectedNodeText(nodeTexts[key]);
   }
 
-  function genCode() {
-    // Diese Funktionen müssen bei dir definiert oder importiert sein:
-    runStages(
-      "status4",
-      "statusText4",
-      [
-        "Lade Code-Templates (Grove) …",
-        "Injiziere Zustandsautomat …",
-        "Setze Parameter-Slots …",
-      ],
-      () => {
-        unLock(5);
-      },
-    );
-  }
-
-  function goTo(step: number) {
-    console.log("Wechsle zu Schritt", step);
-  }
-
   return (
     <div>
       <section className="panel" id="p4">
         <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold font-sans text-[#1E2430]">
-          Schritt 4: Logik- &amp; Hardware-Struktur
-        </h2>
-        <p className="text-sm text-[#5A6172] mt-1">
-          Klicke auf ein Bauteil für Details. Die Verbindungen entsprechen den
-          Grove-Ports — keine freien Drähte, keine Widerstände.
-        </p>
-      </div>
-      </div>
+          {/* Header */}
+          <div>
+            <h2 className="text-2xl font-bold font-sans text-[#1E2430]">
+              Schritt 4 · Logik- &amp; Hardware-Struktur
+            </h2>
+            <p className="text-sm text-[#5A6172] mt-1 flex items-center">
+              <span>
+                Klicke auf ein Bauteil für Details. Die Verbindungen entsprechen den
+                Grove-Ports — keine freien Drähte, keine Widerstände.
+              </span>
+              {/* HOVER 1: Untertitel */}
+              <InfoTooltip text="Grove ist ein standardisiertes Stecksystem. Ports wie A0 (Analog) oder D2 (Digital) zeigen dir direkt, wo welche Module eingesteckt werden." />
+            </p>
+          </div>
+        </div>
 
-
-        <div className="circuit-wrap">
+        <div className="circuit-wrap mt-6">
           <svg
             viewBox="0 0 640 230"
             width="100%"
@@ -303,20 +286,28 @@ export function Step4Struktur() {
           </svg>
         </div>
 
-        <div className="cnode-info">{selectedNodeText}</div>
+        {/* Info-Box für angeklickte Bauteile */}
+        <div className="cnode-info mt-4 flex items-center justify-between p-3 bg-[#FAF8F4] border border-[#D9D3C7] rounded-lg text-sm text-[#1E2430]">
+          <span>{selectedNodeText}</span>
+          {/* HOVER 2: Interaktiver Graph */}
+          <InfoTooltip text="Klicke oben im Diagramm auf einen Kasten (z. B. Sensor oder MCU), um hier spezifische Pin-Details zu sehen." />
+        </div>
 
-        <div className="space-y-2">
-        <label className="block text-sm font-medium text-[#1E2430]">
-          Anpassungen 
-        </label>
-        <textarea
-          value={openPromptText}
-          onChange={(e) => setOpenPromptText(e.target.value)}
-          placeholder="Gib der KI spezifische Anweisungen mit, wie verbleibende Lücken gefüllt werden sollen..."
-          rows={4}
-          className="w-full rounded-xl border border-[#D9D3C7] p-4 text-sm focus:outline-none focus:border-[#C46A2B] resize-none"
-        />
-      </div>
+        {/* Textarea Anpassungen */}
+        <div className="space-y-2 mt-6">
+          <label className="text-sm font-medium text-[#1E2430] flex items-center">
+            <span>Anpassungen</span>
+            {/* HOVER 3: Anpassungen Prompt */}
+            <InfoTooltip text="Möchtest du Ports ändern oder Logik anpassen? Gib z. B. ein: 'Nutze Port D3 statt D2' oder 'Füge eine zweite LED hinzu'." />
+          </label>
+          <textarea
+            value={openPromptText}
+            onChange={(e) => setOpenPromptText(e.target.value)}
+            placeholder="Gib der KI spezifische Anweisungen mit, wie verbleibende Lücken gefüllt werden sollen..."
+            rows={4}
+            className="w-full rounded-xl border border-[#D9D3C7] p-4 text-sm focus:outline-none focus:border-[#C46A2B] resize-none"
+          />
+        </div>
       </section>
     </div>
   );

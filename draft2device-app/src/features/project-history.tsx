@@ -5,8 +5,8 @@ import { useListProjects } from '../api/request';
 import type { Project } from '../api/types';
 
 interface ProjectHistoryProps {
-  currentProjectId: number | null;
-  onSelectProject: (id: number) => void;
+  currentProjectId: string | null;
+  onSelectProject: (id: string) => void;
   onCreateProject: () => void;
   isCreating?: boolean;
   refreshTrigger?: number; // hochzählen, um die Liste neu zu laden

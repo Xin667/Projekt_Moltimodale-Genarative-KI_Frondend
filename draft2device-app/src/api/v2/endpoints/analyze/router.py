@@ -15,12 +15,20 @@ import db.db as db
 from config import client, model, RESEND_ALL_IMAGES_EVERY_REQUEST
 from .schema import schema2
 from .prompt import SYSTEM_PROMPT
- 
+
 import json
 import base64
 
+# Unter diesem Namen speichern wir das Ergebnis dieses Endpoints in der
+# "artifacts"-Tabelle. Der spätere Hardware-Endpoint würde sich genau
+# dieses Artefakt per db.get_latest_artifact(project_id, "concept_structure")
+# holen, ohne sich um die Chat-Historie kümmern zu müssen.
 ARTIFACT_TYPE = "concept_structure"
  
+# Trennt die Chat-Historie DIESES Endpoints von der anderer Endpoints
+# (z.B. eines späteren Hardware-Endpoints) innerhalb desselben Projekts.
+CONVERSATION_TYPE = "analyze"
+
 router = APIRouter()
  
 # Erzwingt das Schema aus schema.py bei jedem Modell-Aufruf DIESES Endpoints.
@@ -49,7 +57,7 @@ async def analyze(
     # WICHTIG: Das muss VOR der Bild-Verarbeitung passieren, weil wir die
     # neue message_id brauchen, um das Bild (falls vorhanden) korrekt damit
     # zu verknüpfen (siehe Schritt 3).
-    new_message_id = db.add_message(project_id, role="user", content=message)
+    new_message_id = db.add_message(project_id, conversation_type=CONVERSATION_TYPE, role="user", content=message)
  
     # --- Schritt 3: Bild (falls vorhanden) dauerhaft speichern ---
     if image:
@@ -60,7 +68,7 @@ async def analyze(
         db.save_image(project_id, new_message_id, mime_type, raw_data)
  
     # --- Schritt 4: Komplette bisherige Historie + alle gespeicherten Bilder laden ---
-    previous_messages = db.get_messages(project_id)
+    previous_messages = db.get_messages(project_id, conversation_type=CONVERSATION_TYPE)
     all_images = db.get_images(project_id)
  
     # Bilder nach ihrer message_id gruppieren, damit wir gleich pro Nachricht
@@ -116,7 +124,7 @@ async def analyze(
     result = json.loads(response.choices[0].message.content)
  
     # --- Schritt 7: Antwort speichern - sowohl in der Chat-Historie ... ---
-    db.add_message(project_id, role="assistant", content=json.dumps(result, ensure_ascii=False))
+    db.add_message(project_id, conversation_type=CONVERSATION_TYPE, role="assistant", content=json.dumps(result, ensure_ascii=False))
  
     # --- ... als auch als eigenständiges Artefakt, für andere Endpoints ---
     db.save_artifact(project_id, ARTIFACT_TYPE, result)
@@ -125,5 +133,4 @@ async def analyze(
     return {
         "project_id": project_id,
         **result,
-    }
- 
+   }
