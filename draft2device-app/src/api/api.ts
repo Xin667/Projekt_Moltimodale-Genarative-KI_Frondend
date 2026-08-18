@@ -20,8 +20,11 @@ import type {
 // Konfiguration
 // ---------------------------------------------------------------------------
 
-/** Basis-URL des FastAPI-Backends. */
-export const API_BASE = 'http://localhost:8000'
+/**
+ * Basis-URL des FastAPI-Backends.
+ * Leer lassen — dann laufen alle Requests über den Vite-Proxy (kein CORS).
+ */
+export const API_BASE = ''
 
 /** true = keine Netzwerk-Requests, stattdessen Beispieldaten aus src/mock/. */
 export const MOCK_MODE: boolean = false
@@ -82,21 +85,11 @@ export function toApiError(error: unknown): ApiError {
  *
  */
 async function classifyFetchFailure(cause: unknown): Promise<ApiError> {
-  try {
-    await fetch(API_BASE, { method: 'GET', mode: 'no-cors' })
-  } catch {
-    return new ApiError(
-      'network',
-      `Keine Verbindung zu ${API_BASE}. Läuft das Backend?`,
-      { cause },
-    )
-  }
-
+  // Da alle Requests über den Vite-Proxy laufen, gibt es keine CORS-Blockade mehr.
+  // Ein fetch-Fehler bedeutet: Backend bzw. Proxy ist nicht erreichbar.
   return new ApiError(
-    'cors',
-    `Das Backend unter ${API_BASE} ist erreichbar, aber der Browser hat die ` +
-      'Antwort blockiert (CORS). Im Backend muss die CORSMiddleware für ' +
-      'http://localhost:5173 freigeschaltet werden.',
+    'network',
+    `Keine Verbindung zum Backend. Läuft der Server (uvicorn main:app --reload)?`,
     { cause },
   )
 }

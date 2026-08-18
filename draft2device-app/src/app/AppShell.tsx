@@ -1,4 +1,5 @@
 import React from 'react';
+import { ProjectStatusRail } from '@/features/project-status/ProjectStatusRail';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -21,14 +22,10 @@ export function AppShell({ children, navigation }: AppShellProps) {
           {children}
         </section>
 
-        {/* RECHTE SPALTE: KI-Assistent & Empfehlungen (3 von 12 Spalten) */}
-        <aside className="lg:col-span-3 bg-white p-6 rounded-2xl shadow-sm border border-[#D9D3C7]/40 flex flex-col gap-4">
-          <h3 className="font-bold text-lg text-[#1E2430] border-b border-[#D9D3C7] pb-2">KI-Assistent</h3>
-          <div className="bg-orange-50/40 text-sm p-4 rounded-xl border border-orange-100/50 leading-relaxed">
-            "Ich helfe dir dabei, deine Skizze in echten Code zu verwandeln. Lass uns mit Schritt 1 starten!"
-          </div>
-        </aside>
-
+        {/* RECHTE SPALTE: Single Point of Truth — aktueller Projektstatus (3 von 12) */}
+        <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-[#D9D3C7]/40 overflow-hidden">
+          <ProjectStatusRail />
+        </div>
       </main>
     </div>
   );
