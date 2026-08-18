@@ -26,33 +26,23 @@ export const NavStepper: React.FC<StepperProps> = ({
   ];
 
   return (
-    <div className="flex flex-row gap-4 mb-6 ">
-      <nav aria-label="Projektfortschritt" className="flex
-    w-full
-    flex-row
-    flex-nowrap
-    gap-2
-    overflow-block
-    pb-2
-
-    lg:flex-row
-    lg:overflow-x-visible
-    lg:pb-0
-
-">
+    <div className="mb-6 w-full min-w-0">
+      <nav
+        aria-label="Projektfortschritt"
+        className="grid w-full min-w-0 grid-cols-6 gap-1"
+      >
         {steps.map((step) => {
           const isActive = step.number === currentStep;
           const isDone = step.number < currentStep && step.number <= unlockedStep;
           const isLocked = step.number > unlockedStep;
 
           return (
-            <div className="flex flex-row items-center gap-3">
+            <div key={step.number} className="min-w-0">
             <button
-              key={step.number}
               type="button"
               disabled={isLocked}
               onClick={() => onStepClick(step.number)}
-              className={`flex items-center menu-horizontal gap-1 px-2 py-2 rounded-lg text-left text-sm font-s border-l-3
+              className={`flex w-full min-w-0 flex-col items-center justify-center gap-1 rounded-lg border-l-3 px-1 py-2 text-center text-[10px] leading-tight font-s
                 ${isActive 
                   ? 'bg-orange-50/60 border-[#C46A2B] text-[#1E2430] font-semibold' 
                   : isDone 
@@ -70,7 +60,7 @@ export const NavStepper: React.FC<StepperProps> = ({
               >
                 {isDone ? '✓' : step.number}
               </div>
-              <span>{step.label}</span>
+              <span className="min-w-0 break-words">{step.label}</span>
             </button>
           </div>
           );
