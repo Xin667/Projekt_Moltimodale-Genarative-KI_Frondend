@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 
 interface HardwareItem {
   id: string;
@@ -56,17 +57,23 @@ export const Step3Hardware: React.FC = () => {
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold font-sans text-[#1E2430]">
-          Schritt 3: Hardware-Auswahl & Konfiguration
+          Schritt 3. Hardware-Auswahl & Konfiguration
         </h2>
-        <p className="text-sm text-[#5A6172] mt-1">
-          Wähle die passende Zielhardware für dein KI-Generat aus und füge bei Bedarf Sensoren hinzu.
+        <p className="text-sm text-[#5A6172] mt-1 flex items-center">
+          <span>
+            Wähle die passende Zielhardware für dein KI-Generat aus und füge bei Bedarf Sensoren hinzu.
+          </span>
+          {/* HOVER 1: Untertitel */}
+          <InfoTooltip text="Die KI passt den später generierten Python-Code exakt an die Treiber und Pins der hier gewählten Boards an." />
         </p>
       </div>
 
       {/* 1. Primäre Hardware-Auswahl (Karten mit Preis & Info) */}
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-[#1E2430]">
-          Primäre Steuerungseinheit wählen
+        <label className="text-sm font-medium text-[#1E2430] flex items-center">
+          <span>Primäre Steuerungseinheit wählen</span>
+          {/* HOVER 2: Primäre Hardware */}
+          <InfoTooltip text="Wähle 'EdgeCompute' für rechenintensive Aufgaben (z. B. Bildverarbeitung). Wähle 'SmartNode' für einfache Sensorik und lange Akkulaufzeiten." />
         </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {primaryHardware.map((hw) => {
@@ -104,8 +111,10 @@ export const Step3Hardware: React.FC = () => {
       {/* 2. Sekundäre Hardware-Liste */}
       <div className="space-y-3">
         <div>
-          <label className="block text-sm font-medium text-[#1E2430]">
-            Sekundäre Hardware & Erweiterungen
+          <label className="text-sm font-medium text-[#1E2430] flex items-center">
+            <span>Sekundäre Hardware & Erweiterungen</span>
+            {/* HOVER 3: Sekundäre Hardware */}
+            <InfoTooltip text="Ausgewählte Module werden automatisch in der Pin-Belegung (Schritt 4) verkabelt und im Quellcode (Schritt 5) initialisiert." />
           </label>
           <p className="text-xs text-[#5A6172] mt-0.5">
             Optionale Komponenten, die automatisch in die Pin-Belegung eingerechnet werden.

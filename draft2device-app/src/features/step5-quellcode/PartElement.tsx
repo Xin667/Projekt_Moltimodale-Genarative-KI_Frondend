@@ -1,5 +1,14 @@
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import type { Part } from "./types";
+
+// Globale Typ-Deklaration für benutzerdefinierte Wokwi-Web-Components (Custom Elements)
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      [elemName: string]: any;
+    }
+  }
+}
 
 /** Von @wokwi/elements zur Laufzeit bereitgestellte Pin-Infos (siehe Paket-Typings). */
 interface ElementPin {
@@ -64,8 +73,7 @@ export function PartElement({ part, onPinsResolved }: PartElementProps) {
     });
 
     return () => cancelAnimationFrame(raf);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [part.id, part.type, part.x, part.y, part.rotation]);
+  }, [part.id, part.type, part.x, part.y, part.rotation, onPinsResolved]);
 
   const style: React.CSSProperties = {
     position: "absolute",
@@ -75,6 +83,8 @@ export function PartElement({ part, onPinsResolved }: PartElementProps) {
     transformOrigin: "center center",
   };
 
-  const Tag = part.type as keyof JSX.IntrinsicElements;
+  // Zweifacher Type-Cast stellt sicher, dass 'part.type' (z. B. 'wokwi-led') als React.ElementType akzeptiert wird
+  const Tag = part.type as unknown as React.ElementType;
+
   return <Tag ref={ref as never} style={style} {...(part.attrs ?? {})} />;
 }

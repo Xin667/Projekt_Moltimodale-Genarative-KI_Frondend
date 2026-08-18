@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 import type { OpenQuestion, AnswersMap, AnalyzeResult } from '@/api/types';
 import { useProjectStore } from '@/store/state';
 import { useAppStore } from '@/app/store';
@@ -95,10 +96,14 @@ export const Step2Klaerung: React.FC = () => {
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold font-sans text-[#1E2430]">
-          Schritt 2: Analyse & Struktur-Klärung
+          Schritt 2. Analyse & Struktur-Klärung
         </h2>
-        <p className="text-sm text-[#5A6172] mt-1">
-          Überprüfe die extrahierte Struktur und fülle die notwendigen Systemlücken aus.
+        <p className="text-sm text-[#5A6172] mt-1 flex items-center">
+          <span>
+            Überprüfe die extrahierte Struktur und fülle die notwendigen Systemlücken aus.
+          </span>
+          {/* HOVER 1: Untertitel */}
+          
         </p>
       </div>
 
