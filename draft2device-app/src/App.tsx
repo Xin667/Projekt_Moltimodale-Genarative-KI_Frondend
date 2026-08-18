@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { AppShell } from './app/AppShell';
 import { Stepper } from './app/Stepper';
 import { useAppStore } from './app/store';
+import { useProjectStore } from '@/store/state';
+import { toApiError } from '@/api/api';
 
 import { StartPage } from './features/startpage';
 import { Step1Input } from './features/step1-input/Step1Input';
@@ -14,12 +16,9 @@ import { Step6Ergebnis } from './features/step6-ergebnis/Step6Ergebnis';
 
 import { Button } from './components/ui/button';
 
-type CreateProjectResponse = {
-  project_id: number;
-};
-
 export default function AppShowcase() {
   const { currentStep, maxStepReached, setCurrentStep } = useAppStore();
+  const startProject = useProjectStore((s) => s.startProject);
 
   const [hasStarted, setHasStarted] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -30,34 +29,12 @@ export default function AppShowcase() {
     setStartError(null);
 
     try {
-      const response = await fetch('/projects', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `Das Projekt konnte nicht erstellt werden. Status: ${response.status}`,
-        );
-      }
-
-      const data: CreateProjectResponse = await response.json();
-
-      console.log('Projekt-ID:', data.project_id);
-
-      sessionStorage.setItem('projectId', String(data.project_id));
-
+      const projectId = await startProject();
+      console.log('Projekt-ID:', projectId);
       setHasStarted(true);
     } catch (error) {
       console.error(error);
-
-      setStartError(
-        error instanceof Error
-          ? error.message
-          : 'Das Projekt konnte nicht erstellt werden.',
-      );
+      setStartError(toApiError(error).message);
     } finally {
       setIsStarting(false);
     }
@@ -92,21 +69,24 @@ export default function AppShowcase() {
         {currentStep === 6 && <Step6Ergebnis />}
       </div>
 
-      <div className="flex justify-end">
-        <Button
-          variant="default"
-          onClick={() => {
-            if (currentStep < 6) {
-              setCurrentStep(currentStep + 1);
-            }
-          }}
-          disabled={currentStep >= 6}
-        >
-          {currentStep < 6
-            ? `Weiter zu Schritt ${currentStep + 1}`
-            : 'Fertig'}
-        </Button>
-      </div>
+      {/* Step 1 hat seinen eigenen "Analyse starten"-Button */}
+      {currentStep !== 1 && (
+        <div className="flex justify-end">
+          <Button
+            variant="default"
+            onClick={() => {
+              if (currentStep < 6) {
+                setCurrentStep(currentStep + 1);
+              }
+            }}
+            disabled={currentStep >= 6}
+          >
+            {currentStep < 6
+              ? `Weiter zu Schritt ${currentStep + 1}`
+              : 'Fertig'}
+          </Button>
+        </div>
+      )}
     </AppShell>
   );
 }
