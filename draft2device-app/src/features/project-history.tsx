@@ -62,7 +62,7 @@ export function ProjectHistory({
     <div className="flex flex-col flex-1 min-h-0">
       <Button
         variant="default"
-        onClick={onCreateProject}
+        onClick={() => onCreateProject()}
         disabled={isCreating}
         className="w-full mb-4 flex items-center justify-center gap-2"
       >

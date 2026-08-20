@@ -28,13 +28,13 @@ export default function AppShowcase() {
   const [isStarting, setIsStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
 
-  async function handleStart() {
+  async function handleStart(name?: string) {
     setIsStarting(true);
     setStartError(null);
 
     try {
       setProjectId(null);
-      const projectId = await startProject();
+      const projectId = await startProject(name);
 
       setCurrentProjectId(projectId);
       sessionStorage.setItem('projectId', projectId);
