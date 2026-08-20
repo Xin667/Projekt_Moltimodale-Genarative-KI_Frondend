@@ -49,7 +49,7 @@ export interface ProjectState {
   setStructureAdjustments: (adj: string) => void
 
   // --- API Calls ---
-  startProject: () => Promise<string>
+  startProject: (name?: string) => Promise<string>
   /** Überarbeitete submitAnalyze: Kann optional ohne Parameter aufgerufen werden und nutzt dann die Daten aus dem Store. */
   submitAnalyze: (input?: {
     message?: string
@@ -141,11 +141,11 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     set({ ...initialState })
   },
 
-  startProject: async () => {
+  startProject: async (name) => {
     const existing = get().projectId
     if (existing) return existing
 
-    const projectId = await createProject()
+    const projectId = await createProject(name)
     set({ projectId })
     return projectId
   },

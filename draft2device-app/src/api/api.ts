@@ -265,13 +265,16 @@ export function resetMockState(): void {
 }
 
 /** POST /projects — startet ein Projekt und liefert dessen project_id. */
-export async function createProject(): Promise<string> {
+export async function createProject(name?: string): Promise<string> {
   if (MOCK_MODE) {
     await delay(MOCK_CREATE_DELAY_MS)
     return MOCK_PROJECT_ID
   }
 
-  const data = await request('/projects', { method: 'POST' })
+  const body = new FormData()
+  if (name) body.append('name', name)
+
+  const data = await request('/projects', { method: 'POST', body })
   const projectId = asRecord(data).project_id
 
   if (typeof projectId !== 'string' || !projectId) {
