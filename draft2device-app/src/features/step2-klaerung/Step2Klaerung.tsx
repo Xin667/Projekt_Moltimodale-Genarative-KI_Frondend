@@ -1,153 +1,371 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
+import type { OpenQuestion, AnswersMap, AnalyzeResult } from '@/api/types';
+import { useProjectStore } from '@/store/state';
+import { useAppStore } from '@/app/store';
+
+/** Findet den menschenlesbaren Namen des referenzierten Elements. */
+function resolveReference(
+  reference: string,
+  structure: AnalyzeResult,
+): string | null {
+  const allItems = [
+    ...structure.actors_entities,
+    ...structure.sensors,
+    ...structure.actuators,
+    ...structure.states,
+  ] as Array<{ id: string; name?: string; concept_term?: string }>;
+
+  const found = allItems.find((item) => item.id === reference);
+  if (!found) return null;
+  return found.name ?? found.concept_term ?? found.id;
+}
 
 export const Step2Klaerung: React.FC = () => {
-  // Zustände für die Lücken-Komponenten & den Prompt
-  const [sliderValue, setSliderValue] = useState<number>(50);
-  const [choiceValue, setChoiceValue] = useState<string>('');
-  const [isOpenPrompt, setIsOpenPrompt] = useState<boolean>(false);
-  const [openPromptText, setOpenPromptText] = useState<string>('');
+  const structure = useProjectStore((s) => s.structure);
+  const status = useProjectStore((s) => s.status);
+  const storeError = useProjectStore((s) => s.error);
+  const submitAnswers = useProjectStore((s) => s.submitAnswers);
+  const setCurrentStep = useAppStore((s) => s.setCurrentStep);
+
+  const [answers, setAnswers] = useState<AnswersMap>({});
+  const [extraPrompt, setExtraPrompt] = useState('');
+  const [isRefining, setIsRefining] = useState(false);
+
+  /** Baut ein AnswersMap aus dem Formular-State. */
+  function updateAnswer(questionId: string, value: string | string[]) {
+    setAnswers((prev) => ({ ...prev, [questionId]: value }));
+  }
+
+  async function handleRefine() {
+    if (!structure) return;
+    setIsRefining(true);
+    const result = await submitAnswers(
+      structure.open_questions,
+      answers,
+      extraPrompt,
+    );
+    setIsRefining(false);
+    if (result) {
+      setAnswers({});
+      setExtraPrompt('');
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Lade- / Leerzustand
+  // ------------------------------------------------------------------
+  if (!structure) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h2 className="text-2xl font-bold font-sans text-[#1E2430]">
+            Schritt 2: Analyse & Struktur-Klärung
+          </h2>
+          <p className="text-sm text-[#5A6172] mt-1">
+            Überprüfe die extrahierte Struktur und fülle die notwendigen Systemlücken aus.
+          </p>
+        </div>
+        <div className="rounded-xl border border-[#D9D3C7] bg-[#FAF8F4] p-8 text-center text-sm text-[#5A6172]">
+          {status === 'loading'
+            ? 'KI analysiert deine Eingabe …'
+            : 'Keine Analysedaten vorhanden. Bitte starte die Analyse in Schritt 1.'}
+        </div>
+      </div>
+    );
+  }
+
+  // ------------------------------------------------------------------
+  // Daten aufbereiten
+  // ------------------------------------------------------------------
+  const {
+    project_metadata,
+    actors_entities,
+    sensors,
+    actuators,
+    states,
+    open_questions,
+  } = structure;
+
+  const unansweredQuestions = open_questions.filter(
+    (q) => !answers[q.id] || (Array.isArray(answers[q.id]) && (answers[q.id] as string[]).length === 0),
+  );
 
   return (
     <div className="space-y-8">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold font-sans text-[#1E2430]">
-          Schritt 2: Analyse & Struktur-Klärung
+          Schritt 2. Analyse & Struktur-Klärung
         </h2>
-        <p className="text-sm text-[#5A6172] mt-1">
-          Überprüfe die extrahierte Struktur und fülle die notwendigen Systemlücken aus.
+        <p className="text-sm text-[#5A6172] mt-1 flex items-center">
+          <span>
+            Überprüfe die extrahierte Struktur und fülle die notwendigen Systemlücken aus.
+          </span>
+          {/* HOVER 1: Untertitel */}
+          
         </p>
       </div>
 
-      {/* 1. Analyse-Struktur-Ansicht (4 Blöcke) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-[#FAF8F4] border border-[#D9D3C7] rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg">📊</span>
-            <h3 className="font-semibold text-sm text-[#1E2430]">Block 1: UI/UX Struktur</h3>
-          </div>
-          <p className="text-xs text-[#5A6172]">Hier werden Layout-Raster, Menüpfade und Navigationsbäume der hochgeladenen Skizze analysiert.</p>
-        </div>
-
-        <div className="bg-[#FAF8F4] border border-[#D9D3C7] rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg">⚙️</span>
-            <h3 className="font-semibold text-sm text-[#1E2430]">Block 2: Funktionale Logik</h3>
-          </div>
-          <p className="text-xs text-[#5A6172]">Erkennung von Interaktions-Triggern, Buttons, Event-Handlern und Formular-Zielen.</p>
-        </div>
-
-        <div className="bg-[#FAF8F4] border border-[#D9D3C7] rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg">💾</span>
-            <h3 className="font-semibold text-sm text-[#1E2430]">Block 3: Daten-Entitäten</h3>
-          </div>
-          <p className="text-xs text-[#5A6172]">Erfasste Datenfelder, Variablen-Typen und notwendige API-Schnittstellen im Hintergrund.</p>
-        </div>
-
-        <div className="bg-[#FAF8F4] border border-[#D9D3C7] rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg">🔒</span>
-            <h3 className="font-semibold text-sm text-[#1E2430]">Block 4: System-Restriktionen</h3>
-          </div>
-          <p className="text-xs text-[#5A6172]">Sicherheits-Vorgaben, Validierungs-Regeln und gerätespezifische Einschränkungen.</p>
-        </div>
+      {/* Projekt-Metadaten */}
+      <div className="rounded-xl border border-[#C46A2B]/30 bg-orange-50/40 p-4">
+        <h3 className="font-semibold text-sm text-[#1E2430]">
+          {project_metadata.working_title}
+        </h3>
+        <p className="text-xs text-[#5A6172] mt-1">
+          {project_metadata.core_intention}
+        </p>
       </div>
 
-      <hr className="border-[#D9D3C7]" />
-
-      {/* 2. Lücken-Komponenten */}
-      <div className="space-y-6">
-        <h3 className="font-bold text-lg text-[#1E2430]">Systemlücken präzisieren</h3>
-
-        {/* LueckeSlider */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm font-medium text-[#1E2430]">
-            <label>Lücke A: Performance-Priorität (Slider)</label>
-            <span className="text-[#C46A2B] font-bold">{sliderValue}%</span>
-          </div>
-          <input 
-            type="range" 
-            min="0" 
-            max="100" 
-            value={sliderValue}
-            onChange={(e) => setSliderValue(Number(e.target.value))}
-            disabled={isOpenPrompt}
-            className="w-full accent-[#C46A2B] h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer disabled:opacity-40"
-          />
-          <div className="flex justify-between text-xs text-[#5A6172]">
-            <span>Akkulaufzeit</span>
-            <span>Rechenleistung</span>
-          </div>
-        </div>
-
-        {/* LueckeChoice & Offen Lassen */}
-        <div className="space-y-3">
-          <label className="block text-sm font-medium text-[#1E2430]">
-            Lücke B: primäres UI-Thema (Single-Choice)
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <label className={`flex items-center gap-3 border p-3 rounded-xl cursor-pointer transition-colors ${choiceValue === 'light' && !isOpenPrompt ? 'border-[#C46A2B] bg-[#FAF8F4]' : 'border-[#D9D3C7]'} ${isOpenPrompt ? 'opacity-40 cursor-not-allowed' : ''}`}>
-              <input 
-                type="radio" 
-                name="uiTheme" 
-                value="light"
-                checked={choiceValue === 'light' && !isOpenPrompt}
-                onChange={(e) => setChoiceValue(e.target.value)}
-                disabled={isOpenPrompt}
-                className="accent-[#C46A2B]"
-              />
-              <span className="text-sm text-[#1E2430]">Light Mode</span>
-            </label>
-
-            <label className={`flex items-center gap-3 border p-3 rounded-xl cursor-pointer transition-colors ${choiceValue === 'dark' && !isOpenPrompt ? 'border-[#C46A2B] bg-[#FAF8F4]' : 'border-[#D9D3C7]'} ${isOpenPrompt ? 'opacity-40 cursor-not-allowed' : ''}`}>
-              <input 
-                type="radio" 
-                name="uiTheme" 
-                value="dark"
-                checked={choiceValue === 'dark' && !isOpenPrompt}
-                onChange={(e) => setChoiceValue(e.target.value)}
-                disabled={isOpenPrompt}
-                className="accent-[#C46A2B]"
-              />
-              <span className="text-sm text-[#1E2430]">Dark Mode</span>
-            </label>
-
-            {/* „Offen lassen"-Option */}
-            <label className={`flex items-center gap-3 border p-3 rounded-xl cursor-pointer border-dashed transition-colors ${isOpenPrompt ? 'border-blue-500 bg-blue-50/40' : 'border-[#D9D3C7]'}`}>
-              <input 
-                type="checkbox" 
-                checked={isOpenPrompt}
-                onChange={(e) => {
-                  setIsOpenPrompt(e.target.checked);
-                  if(e.target.checked) setChoiceValue(''); // setzt Radio zurück wenn offen gelassen
-                }}
-                className="accent-blue-500"
-              />
-              <span className="text-sm font-medium text-[#1E2430]">Lücken offen lassen</span>
-            </label>
-          </div>
-          {isOpenPrompt && (
-            <p className="text-xs text-blue-600 font-medium">ℹ️ Systemlücken werden durch den freien Prompt unten manuell definiert.</p>
+      {/* Struktur-Übersicht */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Akteure */}
+        <div className="bg-[#FAF8F4] border border-[#D9D3C7] rounded-xl p-4">
+          <h3 className="font-semibold text-sm text-[#1E2430]">
+            Akteure / Entitäten ({actors_entities.length})
+          </h3>
+          {actors_entities.length === 0 ? (
+            <p className="text-xs text-[#5A6172] mt-2">Keine erkannt.</p>
+          ) : (
+            <ul className="mt-2 space-y-1">
+              {actors_entities.map((a) => (
+                <li key={a.id} className="text-xs text-[#5A6172]">
+                  <span className="font-medium text-[#1E2430]">{a.name}</span>
+                  <span className="ml-1 text-[10px] text-[#9CA3AF]">({a.type})</span>
+                  {' — '}{a.description}
+                </li>
+              ))}
+            </ul>
           )}
         </div>
+
+        {/* Sensoren & Aktoren */}
+        <div className="bg-[#FAF8F4] border border-[#D9D3C7] rounded-xl p-4">
+          <h3 className="font-semibold text-sm text-[#1E2430]">
+            Sensoren ({sensors.length}) / Aktoren ({actuators.length})
+          </h3>
+          {[...sensors, ...actuators].length === 0 ? (
+            <p className="text-xs text-[#5A6172] mt-2">Keine erkannt.</p>
+          ) : (
+            <ul className="mt-2 space-y-1">
+              {sensors.map((s) => (
+                <li key={s.id} className="text-xs text-[#5A6172]">
+                  📡 <span className="font-medium text-[#1E2430]">{s.concept_term}</span>
+                  <span className="ml-1 text-[10px] text-[#9CA3AF]">({s.category})</span>
+                </li>
+              ))}
+              {actuators.map((a) => (
+                <li key={a.id} className="text-xs text-[#5A6172]">
+                  🔧 <span className="font-medium text-[#1E2430]">{a.concept_term}</span>
+                  <span className="ml-1 text-[10px] text-[#9CA3AF]">({a.category})</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Zustände */}
+        <div className="bg-[#FAF8F4] border border-[#D9D3C7] rounded-xl p-4">
+          <h3 className="font-semibold text-sm text-[#1E2430]">
+            Zustände ({states.length})
+          </h3>
+          {states.length === 0 ? (
+            <p className="text-xs text-[#5A6172] mt-2">Keine definiert.</p>
+          ) : (
+            <ul className="mt-2 space-y-1">
+              {states.map((s) => (
+                <li key={s.id} className="text-xs text-[#5A6172]">
+                  <span className="font-medium text-[#1E2430]">{s.name}</span>
+                  {s.is_initial_state && (
+                    <span className="ml-1 rounded bg-green-100 px-1.5 py-0.5 text-[10px] text-green-700">
+                      Start
+                    </span>
+                  )}
+                  {' — '}{s.description}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Version & offene Fragen */}
+        <div className="bg-[#FAF8F4] border border-[#D9D3C7] rounded-xl p-4">
+          <h3 className="font-semibold text-sm text-[#1E2430]">
+            Status
+          </h3>
+          <p className="text-xs text-[#5A6172] mt-2">
+            {open_questions.length === 0
+              ? 'Keine offenen Fragen — die Struktur ist vollständig.'
+              : `${unansweredQuestions.length} von ${open_questions.length} Fragen noch offen.`}
+          </p>
+        </div>
       </div>
+
+      {/* Offene Fragen — dynamisch aus open_questions */}
+      {open_questions.length > 0 && (
+        <>
+          <hr className="border-[#D9D3C7]" />
+
+          <div className="space-y-6">
+            <h3 className="font-bold text-lg text-[#1E2430]">
+              Offene Fragen ({unansweredQuestions.length} unbeantwortet)
+            </h3>
+
+            {open_questions.map((question) => (
+              <QuestionBlock
+                key={question.id}
+                question={question}
+                structure={structure}
+                value={answers[question.id]}
+                onChange={(val) => updateAnswer(question.id, val)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Fehleranzeige */}
+      {storeError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {storeError.message}
+        </div>
+      )}
 
       <hr className="border-[#D9D3C7]" />
 
-      {/* 3. Offener Prompt */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-[#1E2430]">
-          Offener Prompt (Manuelle Spezifikation für KI-Generierung)
-        </label>
-        <textarea
-          value={openPromptText}
-          onChange={(e) => setOpenPromptText(e.target.value)}
-          placeholder="Gib der KI spezifische Anweisungen mit, wie verbleibende Lücken gefüllt werden sollen..."
-          rows={4}
-          className="w-full rounded-xl border border-[#D9D3C7] p-4 text-sm focus:outline-none focus:border-[#C46A2B] resize-none"
-        />
+      {/* Freier Prompt + Aktionen */}
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-[#1E2430]">
+            Ergänzende Anweisungen an die KI
+          </label>
+          <textarea
+            value={extraPrompt}
+            onChange={(e) => setExtraPrompt(e.target.value)}
+            placeholder="Gib der KI spezifische Anweisungen, wie verbleibende Lücken gefüllt werden sollen..."
+            rows={3}
+            className="w-full rounded-xl border border-[#D9D3C7] p-4 text-sm focus:outline-none focus:border-[#C46A2B] resize-none"
+          />
+        </div>
+
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={handleRefine}
+            disabled={isRefining}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#C46A2B] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#A0522D] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isRefining ? (
+              <>
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                KI verfeinert...
+              </>
+            ) : (
+              'Struktur verfeinern'
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
 };
+
+// ---------------------------------------------------------------------------
+// Frage-Block: rendert je nach QuestionType ein anderes Eingabefeld
+// ---------------------------------------------------------------------------
+
+interface QuestionBlockProps {
+  question: OpenQuestion;
+  structure: AnalyzeResult;
+  value: string | string[] | undefined;
+  onChange: (value: string | string[]) => void;
+}
+
+function QuestionBlock({ question, structure, value, onChange }: QuestionBlockProps) {
+  const referenceName = resolveReference(question.reference, structure);
+
+  return (
+    <div className="rounded-xl border border-[#D9D3C7] bg-white p-4">
+      <p className="text-sm font-medium text-[#1E2430]">{question.question}</p>
+      {referenceName && (
+        <p className="text-xs text-[#9CA3AF] mt-1">
+          Bezieht sich auf: <span className="font-medium">{referenceName}</span>
+        </p>
+      )}
+
+      <div className="mt-3">
+        {question.type === 'SingleChoice' && question.options && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {question.options.map((option) => (
+              <label
+                key={option}
+                className={`flex items-center gap-2 border p-3 rounded-xl cursor-pointer transition-colors ${
+                  value === option
+                    ? 'border-[#C46A2B] bg-orange-50/40'
+                    : 'border-[#D9D3C7] hover:border-[#C46A2B]/50'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name={question.id}
+                  value={option}
+                  checked={value === option}
+                  onChange={() => onChange(option)}
+                  className="accent-[#C46A2B]"
+                />
+                <span className="text-sm text-[#1E2430]">{option}</span>
+              </label>
+            ))}
+          </div>
+        )}
+
+        {question.type === 'MultipleChoice' && question.options && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {question.options.map((option) => {
+              const selected = Array.isArray(value) ? value.includes(option) : false;
+              return (
+                <label
+                  key={option}
+                  className={`flex items-center gap-2 border p-3 rounded-xl cursor-pointer transition-colors ${
+                    selected
+                      ? 'border-[#C46A2B] bg-orange-50/40'
+                      : 'border-[#D9D3C7] hover:border-[#C46A2B]/50'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    value={option}
+                    checked={selected}
+                    onChange={() => {
+                      const current = Array.isArray(value) ? value : [];
+                      onChange(
+                        selected
+                          ? current.filter((v) => v !== option)
+                          : [...current, option],
+                      );
+                    }}
+                    className="accent-[#C46A2B]"
+                  />
+                  <span className="text-sm text-[#1E2430]">{option}</span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+
+        {question.type === 'Text' && (
+          <textarea
+            value={typeof value === 'string' ? value : ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Deine Antwort..."
+            rows={3}
+            className="w-full rounded-xl border border-[#D9D3C7] p-3 text-sm focus:outline-none focus:border-[#C46A2B] resize-none"
+          />
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,31 +1,29 @@
 import React from 'react';
+import { ProjectStatusRail } from '@/features/project-status/ProjectStatusRail';
 
 interface AppShellProps {
-  sidebarLeft: React.ReactNode;
-  mainContent: React.ReactNode;
-  sidebarRight: React.ReactNode;
+  children: React.ReactNode;
+  navigation: React.ReactNode;
+  projects: React.ReactNode;
 }
 
-export const AppShell: React.FC<AppShellProps> = ({
-  sidebarLeft,
-  mainContent,
-  sidebarRight,
-}) => {
+export function AppShell({ children, navigation, projects }: AppShellProps) {
   return (
-    <div className="min-h-screen bg-[#FAF8F4] text-[#1E2430] antialiased selection:bg-orange-200">
-      <div className="mx-auto max-w-[1600px] min-h-screen grid grid-cols-1 lg:grid-cols-[240px_1fr_320px] divide-x divide-[#D9D3C7]">
-        <aside className="bg-[#FAF8F4]/85 backdrop-blur-sm p-6 overflow-y-auto z-10">
-          {sidebarLeft}
+    <div className="min-h-screen bg-[#FAF8F4] flex flex-col font-sans antialiased text-[#1E2430]">
+      <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 max-w-[1800px] w-full mx-auto">
+        <aside className="lg:col-span-3 bg-white p-6 rounded-2xl shadow-sm border border-[#D9D3C7]/40 flex flex-col">
+          {projects}
         </aside>
-        <main className="bg-white p-8 overflow-y-auto pb-24">
-          <div className="max-w-3xl mx-auto">
-            {mainContent}
-          </div>
-        </main>
-        <aside className="bg-white/60 backdrop-blur-sm p-6 overflow-y-auto hidden xl:block">
-          {sidebarRight}
-        </aside>
-      </div>
+
+        <section className="lg:col-span-6 bg-white p-8 rounded-2xl shadow-md border border-[#D9D3C7]/40 min-h-[700px]">
+          {navigation}
+          {children}
+        </section>
+
+        <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-[#D9D3C7]/40 overflow-hidden">
+          <ProjectStatusRail />
+        </div>
+      </main>
     </div>
   );
-};
+}

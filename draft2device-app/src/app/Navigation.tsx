@@ -11,7 +11,7 @@ interface StepperProps {
   onStepClick: (stepNumber: number) => void;
 }
 
-export const Stepper: React.FC<StepperProps> = ({
+export const NavStepper: React.FC<StepperProps> = ({
   currentStep,
   unlockedStep,
   onStepClick,
@@ -26,22 +26,16 @@ export const Stepper: React.FC<StepperProps> = ({
   ];
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="mb-6 border-b border-[#D9D3C7] pb-4">
-        <h1 className="font-sans text-xl font-bold tracking-tight text-[#1E2430]">
-          Draft<span className="text-[#C46A2B]">2</span>Device
-        </h1>
-        <p className="text-xs font-mono text-[#5A6172] mt-1">Skizze → Code</p>
-      </div>
+    <div className="flex flex-row gap-4 mb-6 ">
       <nav aria-label="Projektfortschritt" className="flex
     w-full
     flex-row
     flex-nowrap
     gap-2
-    overflow-x-auto
+    overflow-block
     pb-2
 
-    lg:flex-col
+    lg:flex-row
     lg:overflow-x-visible
     lg:pb-0
 
@@ -52,12 +46,13 @@ export const Stepper: React.FC<StepperProps> = ({
           const isLocked = step.number > unlockedStep;
 
           return (
+            <div className="flex flex-row items-center gap-3">
             <button
               key={step.number}
               type="button"
               disabled={isLocked}
               onClick={() => onStepClick(step.number)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-left text-sm font-medium transition-all border-l-4
+              className={`flex items-center menu-horizontal gap-1 px-2 py-2 rounded-lg text-left text-sm font-s border-l-3
                 ${isActive 
                   ? 'bg-orange-50/60 border-[#C46A2B] text-[#1E2430] font-semibold' 
                   : isDone 
@@ -65,7 +60,7 @@ export const Stepper: React.FC<StepperProps> = ({
                     : 'border-transparent text-[#5A6172]/50 cursor-not-allowed opacity-50'
                 }`}
             >
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center font-mono text-xs border
+              <div className={`w-4 h-4 rounded-full flex items-center justify-center font-mono text-xs border
                 ${isActive 
                   ? 'border-[#C46A2B] text-[#C46A2B] bg-white' 
                   : isDone 
@@ -77,6 +72,7 @@ export const Stepper: React.FC<StepperProps> = ({
               </div>
               <span>{step.label}</span>
             </button>
+          </div>
           );
         })}
       </nav>

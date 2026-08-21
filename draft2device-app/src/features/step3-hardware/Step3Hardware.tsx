@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 
 interface HardwareItem {
   id: string;
@@ -21,7 +22,7 @@ export const Step3Hardware: React.FC = () => {
     {
       id: 'hw-pro',
       name: 'EdgeCompute IoT Node Pro',
-      price: '149,00 €',
+      price: '149,00€',
       description: 'Maximale Rechenpower direkt an der Maschine. Perfekt für Echtzeit-KI-Analysen.',
       specs: 'Quad-Core 1.5GHz, 8GB RAM, 64GB eMMC',
       icon: '🚀'
@@ -29,7 +30,7 @@ export const Step3Hardware: React.FC = () => {
     {
       id: 'hw-eco',
       name: 'SmartNode Core Eco',
-      price: '79,00 €',
+      price: '79,00€',
       description: 'Ultra-energiesparend und kompakt. Ideal für verteilte Sensornetzwerke im Batteriebetrieb.',
       specs: 'Dual-Core 800MHz, 2GB RAM, 16GB MicroSD',
       icon: '🌱'
@@ -56,17 +57,23 @@ export const Step3Hardware: React.FC = () => {
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold font-sans text-[#1E2430]">
-          Schritt 3: Hardware-Auswahl & Konfiguration
+          Schritt 3. Hardware-Auswahl & Konfiguration
         </h2>
-        <p className="text-sm text-[#5A6172] mt-1">
-          Wähle die passende Zielhardware für dein KI-Generat aus und füge bei Bedarf Sensoren hinzu.
+        <p className="text-sm text-[#5A6172] mt-1 flex items-center">
+          <span>
+            Wähle die passende Zielhardware für dein KI-Generat aus und füge bei Bedarf Sensoren hinzu.
+          </span>
+          {/* HOVER 1: Untertitel */}
+          <InfoTooltip text="Die KI passt den später generierten Python-Code exakt an die Treiber und Pins der hier gewählten Boards an." />
         </p>
       </div>
 
       {/* 1. Primäre Hardware-Auswahl (Karten mit Preis & Info) */}
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-[#1E2430]">
-          Primäre Steuerungseinheit wählen (HwOptionCard)
+        <label className="text-sm font-medium text-[#1E2430] flex items-center">
+          <span>Primäre Steuerungseinheit wählen</span>
+          {/* HOVER 2: Primäre Hardware */}
+          <InfoTooltip text="Wähle 'EdgeCompute' für rechenintensive Aufgaben (z. B. Bildverarbeitung). Wähle 'SmartNode' für einfache Sensorik und lange Akkulaufzeiten." />
         </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {primaryHardware.map((hw) => {
@@ -79,12 +86,12 @@ export const Step3Hardware: React.FC = () => {
                   ${isSelected ? 'border-[#C46A2B] bg-[#FAF8F4] ring-2 ring-[#C46A2B]/20' : 'border-[#D9D3C7] bg-white'}`}
               >
                 <div>
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-3">
+                  <div className="flex justify-between items-start mb-1">
+                    <div className="flex items-center gap-2">
                       <span className="text-2xl">{hw.icon}</span>
                       <h3 className="font-bold text-base text-[#1E2430]">{hw.name}</h3>
                     </div>
-                    <span className="text-[#C46A2B] font-bold text-sm bg-[#FAF8F4] px-2 py-1 rounded-md border border-[#D9D3C7]/40">
+                    <span className="text-[#C46A2B] font-bold text-xs md:text-sm lg:text-md bg-[#FAF8F4] px-1 py-1 rounded-md border border-[#D9D3C7]/40">
                       {hw.price}
                     </span>
                   </div>
@@ -104,8 +111,10 @@ export const Step3Hardware: React.FC = () => {
       {/* 2. Sekundäre Hardware-Liste */}
       <div className="space-y-3">
         <div>
-          <label className="block text-sm font-medium text-[#1E2430]">
-            Sekundäre Hardware & Erweiterungen (SecondaryHwList)
+          <label className="text-sm font-medium text-[#1E2430] flex items-center">
+            <span>Sekundäre Hardware & Erweiterungen</span>
+            {/* HOVER 3: Sekundäre Hardware */}
+            <InfoTooltip text="Ausgewählte Module werden automatisch in der Pin-Belegung (Schritt 4) verkabelt und im Quellcode (Schritt 5) initialisiert." />
           </label>
           <p className="text-xs text-[#5A6172] mt-0.5">
             Optionale Komponenten, die automatisch in die Pin-Belegung eingerechnet werden.
