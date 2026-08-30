@@ -1,41 +1,100 @@
 /**
- * Schema für ein "Projekt", das vom LLM Schritt für Schritt erzeugt/aktualisiert wird.
- * Bewusst simpel gehalten, damit ein LLM es zuverlässig als JSON ausgeben kann
- * (z.B. über Structured Outputs / Tool-Calls).
+ * Typen für den Schaltplan (Circuit Diagram).
+ *
+ * Spiegeln 1:1 das Pydantic-Schema des Backend-Endpoints `/circuit-diagram`
+ * (CircuitDiagram / CircuitDiagramResponse) wider. Die Feldnamen bleiben
+ * bewusst snake_case, damit die JSON-Antwort ohne Umbau direkt zugeordnet
+ * werden kann.
  */
 
-/** Name des zu rendernden wokwi-Custom-Elements, z.B. "wokwi-led". */
-export type PartType =
-  | "wokwi-esp32-devkit-v1"
-  | "wokwi-led"
-  | "wokwi-pushbutton"
-  | "wokwi-resistor"
-  | "wokwi-dht22";
+/** Bestimmt u.a. die Farbe des Pin-Punkts und dient als Fallback-Farbe für Kabel. */
+export type SignalType =
+  | 'power'
+  | 'ground'
+  | 'digital'
+  | 'analog'
+  | 'pwm'
+  | 'i2c'
+  | 'spi'
+  | 'uart'
+  | 'other';
 
-export interface Part {
-  /** Eindeutige ID, wird in Connections referenziert */
+export type ComponentCategory =
+  | 'Microcontroller'
+  | 'Sensor'
+  | 'Actuator'
+  | 'Power Supply'
+  | 'Passive Component'
+  | 'Other';
+
+/** Feste Kabelfarbe (echter CSS-Farbname), direkt als `stroke` nutzbar. */
+export type WireColor =
+  | 'red'
+  | 'black'
+  | 'blue'
+  | 'yellow'
+  | 'green'
+  | 'orange'
+  | 'purple'
+  | 'brown'
+  | 'gray'
+  | 'white';
+
+export interface ComponentPin {
+  /** Referenz aus `connections` heraus, z. B. "gpio34". */
   id: string;
-  type: PartType;
-  /** Position der linken oberen Ecke auf der Zeichenfläche (px) */
-  x: number;
-  y: number;
-  /** Nur 0 / 90 / 180 / 270 unterstützt (siehe SchematicCanvas) */
-  rotation?: 0 | 90 | 180 | 270;
-  /** Bauteil-spezifische Attribute, z.B. { color: "red" } bei einer LED */
-  attrs?: Record<string, string>;
+  /** Kurzes, aufgedrucktes Label, z. B. "3V3", "GND", "AOUT". */
+  label: string;
+  signal_type: SignalType;
+  description: string;
+}
+
+export interface CircuitComponent {
+  id: string;
+  name: string;
+  category: ComponentCategory;
+  description: string;
+  pins: ComponentPin[];
 }
 
 export interface Connection {
-  /** Format "<partId>:<pinName>", z.B. "esp32:D2" */
-  from: string;
-  to: string;
-  /** Optional: Farbe des Drahts im Diagramm (z.B. nach Signalart) */
-  color?: string;
+  id: string;
+  from_component_id: string;
+  from_pin_id: string;
+  to_component_id: string;
+  to_pin_id: string;
+  signal_type: SignalType;
+  wire_color: WireColor;
+  description: string;
 }
 
-export interface Project {
-  id: string;
+export interface AssemblyStep {
+  step_number: number;
+  instruction: string;
+  /** Verbindungen, die in diesem Schritt hergestellt werden. */
+  connection_ids: string[];
+}
+
+export interface PowerRequirement {
+  component_id: string;
+  voltage: string;
+  note: string;
+}
+
+export interface CircuitDiagram {
   title: string;
-  parts: Part[];
+  summary: string;
+  components: CircuitComponent[];
   connections: Connection[];
+  assembly_steps: AssemblyStep[];
+  power_requirements: PowerRequirement[];
+  safety_notes: string[];
+}
+
+/** HTTP-Antwort des Endpoints: Schaltplan plus Meta-Felder. */
+export interface CircuitDiagramResponse extends CircuitDiagram {
+  project_id: string;
+  /** true = es wurde mit Platzhalter-Bauteilen gearbeitet (Endpunkt noch nicht angebunden). */
+  used_dummy_hardware_input: boolean;
+  hardware_components_input: unknown;
 }
