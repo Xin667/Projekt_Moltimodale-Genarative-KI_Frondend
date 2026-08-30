@@ -14,6 +14,22 @@ import type {
   SensorActuator,
   TriggerAction,
   TriggerType,
+  HardwareComponent,
+  HardwareOption,
+  ControllerComponent,
+  ControllerOption,
+  HardwareResult,
+  HardwareSelectionItem,
+  // Schaltplan-Typen:
+  CircuitDiagramResponse,
+  CircuitComponent,
+  ComponentPin,
+  Connection,
+  AssemblyStep,
+  PowerRequirement,
+  SignalType,
+  WireColor,
+  ComponentCategory,
 } from '@/api/types'
 
 // ---------------------------------------------------------------------------
@@ -37,23 +53,16 @@ const MOCK_ANALYZE_DELAY_MS = 800
 // ---------------------------------------------------------------------------
 
 export type ApiErrorKind =
-  /** fetch() ist fehlgeschlagen, Backend nicht erreichbar. */
   | 'network'
-  /** Backend läuft, aber der Browser hat die Antwort mangels CORS-Header verworfen. */
   | 'cors'
-  /** HTTP-Status außerhalb 2xx. */
   | 'http'
-  /** HTTP 200, aber der Body enthält ein error-Feld. */
   | 'backend'
-  /** Antwort war kein verwertbares JSON. */
   | 'parse'
-  /** Ungültige Parameter, bevor überhaupt gesendet wurde. */
   | 'client'
 
 export class ApiError extends Error {
   kind: ApiErrorKind
   status?: number
-  /** Rohtext des Backend-Fehlers, falls vorhanden. */
   detail?: string
 
   constructor(
@@ -69,7 +78,6 @@ export class ApiError extends Error {
   }
 }
 
-/** Wandelt beliebige geworfene Werte in einen ApiError um. */
 export function toApiError(error: unknown): ApiError {
   if (error instanceof ApiError) return error
   return new ApiError('client', 'Unerwarteter Fehler in der API-Schicht.', { cause: error })
@@ -79,14 +87,7 @@ export function toApiError(error: unknown): ApiError {
 // HTTP-Schicht
 // ---------------------------------------------------------------------------
 
-/**
- * Der Browser meldet sowohl eine CORS-Blockade als auch einen nicht erreichbaren
- * Server als `TypeError: Failed to fetch` — ohne jeden Zusatzhinweis.
- *
- */
 async function classifyFetchFailure(cause: unknown): Promise<ApiError> {
-  // Da alle Requests über den Vite-Proxy laufen, gibt es keine CORS-Blockade mehr.
-  // Ein fetch-Fehler bedeutet: Backend bzw. Proxy ist nicht erreichbar.
   return new ApiError(
     'network',
     `Keine Verbindung zum Backend. Läuft der Server (uvicorn main:app --reload)?`,
@@ -102,7 +103,6 @@ async function parseJsonBody(res: Response): Promise<unknown> {
     return JSON.parse(text) as unknown
   } catch (cause) {
     const snippet = text.slice(0, 300)
-    // Bei HTTP-Fehlern ist ein nicht-JSON-Body (z. B. HTML-Fehlerseite) zu erwarten.
     if (!res.ok) {
       throw new ApiError('http', `Backend antwortete mit HTTP ${res.status}.`, {
         status: res.status,
@@ -117,10 +117,9 @@ async function parseJsonBody(res: Response): Promise<unknown> {
   }
 }
 
-/** Liest ein `error`-Feld aus dem Body — das Backend meldet Fehler mit HTTP 200. */
 function extractBackendError(data: unknown): string | undefined {
   if (typeof data !== 'object' || data === null) return undefined
-  const value = (data as { error?: unknown }).error
+  const value = (data as { error?: unknown; detail?: unknown }).error || (data as { detail?: unknown }).detail
   if (typeof value === 'string' && value.trim()) return value
   return undefined
 }
@@ -146,7 +145,7 @@ async function request(path: string, init?: RequestInit): Promise<unknown> {
     )
   }
 
-  if (backendError) {
+  if (backendError && (data as any).error) {
     throw new ApiError('backend', `Das Backend meldet einen Fehler: ${backendError}`, {
       status: res.status,
       detail: backendError,
@@ -157,8 +156,7 @@ async function request(path: string, init?: RequestInit): Promise<unknown> {
 }
 
 // ---------------------------------------------------------------------------
-// Normalisierung
-//
+// Hilfsfunktionen zur Normalisierung
 // ---------------------------------------------------------------------------
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -177,6 +175,10 @@ function asStringArray(value: unknown): string[] {
 function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : []
 }
+
+// ---------------------------------------------------------------------------
+// Normalisierung: Analyse & Struktur
+// ---------------------------------------------------------------------------
 
 function normalizeActor(raw: unknown): ActorEntity {
   const record = asRecord(raw)
@@ -252,6 +254,157 @@ export function normalizeAnalyzeResult(raw: unknown): AnalyzeResult {
 }
 
 // ---------------------------------------------------------------------------
+// Normalisierung: Hardware
+// ---------------------------------------------------------------------------
+
+function normalizeHardwareOption(raw: unknown): HardwareOption {
+  const r = asRecord(raw)
+  return {
+    id: asString(r.id),
+    name: asString(r.name),
+    interface: asString(r.interface),
+    pros_cons: asStringArray(r.pros_cons),
+    cost: asString(r.cost),
+    availability: asString(r.availability),
+    product_link: typeof r.product_link === 'string' ? r.product_link : null,
+    voltage: asString(r.voltage),
+    current: asString(r.current),
+    connector: asString(r.connector),
+    dimensions: typeof r.dimensions === 'string' ? r.dimensions : null,
+    resolution: typeof r.resolution === 'string' ? r.resolution : null,
+    measurement_range: typeof r.measurement_range === 'string' ? r.measurement_range : null,
+    operating_temp: typeof r.operating_temp === 'string' ? r.operating_temp : null,
+    additional_notes: typeof r.additional_notes === 'string' ? r.additional_notes : null,
+    selected: r.selected === true,
+  }
+}
+
+function normalizeHardwareComponent(raw: unknown): HardwareComponent {
+  const r = asRecord(raw)
+  return {
+    id: asString(r.id),
+    component_name: asString(r.component_name),
+    concept_ref_id: asString(r.concept_ref_id),
+    options: asArray(r.options).map(normalizeHardwareOption),
+  }
+}
+
+function normalizeControllerOption(raw: unknown): ControllerOption {
+  const r = asRecord(raw)
+  return {
+    id: asString(r.id),
+    name: asString(r.name),
+    pros_cons: asStringArray(r.pros_cons),
+    cost: asString(r.cost),
+    availability: asString(r.availability),
+    product_link: typeof r.product_link === 'string' ? r.product_link : null,
+    voltage: asString(r.voltage),
+    current: asString(r.current),
+    supported_interfaces: asStringArray(r.supported_interfaces),
+    wireless_connectivity: typeof r.wireless_connectivity === 'string' ? r.wireless_connectivity : null,
+    gpio_count: typeof r.gpio_count === 'string' ? r.gpio_count : null,
+    dimensions: typeof r.dimensions === 'string' ? r.dimensions : null,
+    operating_temp: typeof r.operating_temp === 'string' ? r.operating_temp : null,
+    compatibility_notes: asString(r.compatibility_notes),
+    additional_notes: typeof r.additional_notes === 'string' ? r.additional_notes : null,
+    selected: r.selected === true,
+  }
+}
+
+function normalizeController(raw: unknown): ControllerComponent {
+  const r = asRecord(raw)
+  return {
+    id: asString(r.id),
+    role: asString(r.role),
+    connected_component_ids: asStringArray(r.connected_component_ids),
+    options: asArray(r.options).map(normalizeControllerOption),
+  }
+}
+
+export function normalizeHardwareResult(raw: unknown): HardwareResult {
+  const record = asRecord(raw)
+  return {
+    project_id: asString(record.project_id),
+    hardware_components: asArray(record.hardware_components).map(normalizeHardwareComponent),
+    controllers: asArray(record.controllers).map(normalizeController),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Normalisierung: Schaltplan (/circuit-diagram)
+// ---------------------------------------------------------------------------
+
+function normalizeComponentPin(raw: unknown): ComponentPin {
+  const r = asRecord(raw)
+  return {
+    id: asString(r.id),
+    label: asString(r.label),
+    signal_type: asString(r.signal_type, 'other') as SignalType,
+    description: asString(r.description),
+  }
+}
+
+function normalizeCircuitComponent(raw: unknown): CircuitComponent {
+  const r = asRecord(raw)
+  return {
+    id: asString(r.id),
+    name: asString(r.name),
+    category: asString(r.category, 'Other') as ComponentCategory,
+    description: asString(r.description),
+    pins: asArray(r.pins).map(normalizeComponentPin),
+  }
+}
+
+function normalizeConnection(raw: unknown): Connection {
+  const r = asRecord(raw)
+  return {
+    id: asString(r.id),
+    from_component_id: asString(r.from_component_id),
+    from_pin_id: asString(r.from_pin_id),
+    to_component_id: asString(r.to_component_id),
+    to_pin_id: asString(r.to_pin_id),
+    signal_type: asString(r.signal_type, 'other') as SignalType,
+    wire_color: asString(r.wire_color, 'gray') as WireColor,
+    description: asString(r.description),
+  }
+}
+
+function normalizeAssemblyStep(raw: unknown): AssemblyStep {
+  const r = asRecord(raw)
+  return {
+    step_number: typeof r.step_number === 'number' ? r.step_number : 0,
+    instruction: asString(r.instruction),
+    connection_ids: asStringArray(r.connection_ids),
+  }
+}
+
+function normalizePowerRequirement(raw: unknown): PowerRequirement {
+  const r = asRecord(raw)
+  return {
+    component_id: asString(r.component_id),
+    voltage: asString(r.voltage),
+    note: asString(r.note),
+  }
+}
+
+export function normalizeCircuitDiagramResult(raw: unknown): CircuitDiagramResponse {
+  const r = asRecord(raw)
+  return {
+    project_id: asString(r.project_id),
+    title: asString(r.title, 'Schaltplan'),
+    summary: asString(r.summary),
+    components: asArray(r.components).map(normalizeCircuitComponent),
+    connections: asArray(r.connections).map(normalizeConnection),
+    assembly_steps: asArray(r.assembly_steps).map(normalizeAssemblyStep),
+    power_requirements: asArray(r.power_requirements).map(normalizePowerRequirement),
+    safety_notes: asStringArray(r.safety_notes),
+    used_dummy_hardware_input: r.used_dummy_hardware_input === true,
+    hardware_components_input: r.hardware_components_input ?? null,
+    hardware_updated: r.hardware_updated === true,
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Endpunkte
 // ---------------------------------------------------------------------------
 
@@ -259,12 +412,11 @@ const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 
 let mockAnalyzeCalls = 0
 
-/** Setzt den MOCK_MODE-Zähler zurück, damit eine Demo wiederholbar ist. */
 export function resetMockState(): void {
   mockAnalyzeCalls = 0
 }
 
-/** POST /projects — startet ein Projekt und liefert dessen project_id. */
+/** POST /projects */
 export async function createProject(): Promise<string> {
   if (MOCK_MODE) {
     await delay(MOCK_CREATE_DELAY_MS)
@@ -274,18 +426,14 @@ export async function createProject(): Promise<string> {
   const data = await request('/projects', { method: 'POST' })
   const projectId = asRecord(data).project_id
 
-  if (typeof projectId !== 'string' || !projectId) {
+  if (!projectId) {
     throw new ApiError('parse', 'Antwort von POST /projects enthält keine project_id.')
   }
 
-  return projectId
+  return String(projectId)
 }
 
-/**
- * POST /analyze — multipart/form-data.
- *
- * Content-Type wird bewusst NICHT gesetzt, damit der Browser die boundary ergänzt.
- */
+/** POST /analyze */
 export async function analyze({
   projectId,
   message,
@@ -315,13 +463,6 @@ export async function analyze({
   return normalizeAnalyzeResult(data)
 }
 
-/**
- * Baut aus den Antworten des Nutzers einen lesbaren deutschen Text, der als
- * `message` in den nächsten /analyze-Aufruf geht.
- *
- *
- * Unbeantwortete Fragen werden übersprungen; ohne jede Antwort kommt '' zurück.
- */
 export function formatAnswersAsMessage(
   questions: OpenQuestion[],
   answers: AnswersMap,
@@ -343,4 +484,97 @@ export function formatAnswersAsMessage(
   if (blocks.length === 0) return ''
 
   return `Antworten auf die offenen Fragen:\n\n${blocks.join('\n\n')}`
+}
+
+/** POST /hardware */
+export async function fetchHardware(
+  projectId: string,
+  message: string = 'Ermittle passende Hardware',
+  disableWebSearch: boolean = false,
+  localSearchOnly: boolean = true,
+): Promise<HardwareResult> {
+  if (!projectId) {
+    throw new ApiError('client', 'Kein aktives Projekt vorhanden.')
+  }
+
+  const form = new FormData()
+  form.append('project_id', projectId)
+  form.append('message', message)
+  form.append('disable_web_search', String(disableWebSearch))
+  form.append('local_search_only', String(localSearchOnly))
+
+  const data = await request('/hardware', { method: 'POST', body: form })
+  return normalizeHardwareResult(data)
+}
+
+/** POST /hardware/select */
+export async function selectHardwareOption(
+  projectId: string,
+  selections: HardwareSelectionItem[],
+): Promise<HardwareResult> {
+  if (!projectId) {
+    throw new ApiError('client', 'Kein aktives Projekt vorhanden.')
+  }
+  if (!selections.length) {
+    throw new ApiError('client', 'Mindestens eine Auswahl erforderlich.')
+  }
+
+  const form = new FormData()
+  form.append('project_id', projectId)
+
+  for (const item of selections) {
+    form.append('selections', JSON.stringify(item))
+  }
+
+  const data = await request('/hardware/select', { method: 'POST', body: form })
+  return normalizeHardwareResult(data)
+}
+
+/** GET /hardware/{project_id} */
+export async function getLatestHardwareSelection(projectId: string): Promise<HardwareResult> {
+  if (!projectId) {
+    throw new ApiError('client', 'Kein aktives Projekt vorhanden.')
+  }
+
+  const data = await request(`/hardware/${projectId}`, { method: 'GET' })
+  return normalizeHardwareResult(data)
+}
+
+// ---------------------------------------------------------------------------
+// Schaltplan-Endpunkte (/circuit-diagram)
+// ---------------------------------------------------------------------------
+
+/**
+ * POST /circuit-diagram — generiert den Schaltplan neu oder aktualisiert ihn per Änderungswunsch (message).
+ */
+export async function generateCircuitDiagram(
+  projectId: string,
+  message?: string | null,
+): Promise<CircuitDiagramResponse> {
+  if (!projectId) {
+    throw new ApiError('client', 'Kein aktives Projekt vorhanden.')
+  }
+
+  const data = await request('/circuit-diagram', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      project_id: projectId,
+      message: message || null,
+    }),
+  })
+
+  return normalizeCircuitDiagramResult(data)
+}
+
+/**
+ * GET /circuit-diagram/{project_id} — lädt den zuletzt generierten Schaltplan ohne neuen KI-Aufruf.
+ */
+export async function getCircuitDiagram(projectId: string): Promise<CircuitDiagramResponse> {
+  if (!projectId) {
+    throw new ApiError('client', 'Kein aktives Projekt vorhanden.')
+  }
+
+  const data = await request(`/circuit-diagram/${projectId}`, { method: 'GET' })
+  return normalizeCircuitDiagramResult(data)
 }
