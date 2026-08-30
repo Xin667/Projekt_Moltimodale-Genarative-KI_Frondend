@@ -28,13 +28,13 @@ export default function AppShowcase() {
   const [isStarting, setIsStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
 
-  async function handleStart() {
+  async function handleStart(name?: string) {
     setIsStarting(true);
     setStartError(null);
 
     try {
       setProjectId(null);
-      const projectId = await startProject();
+      const projectId = await startProject(name);
 
       setCurrentProjectId(projectId);
       sessionStorage.setItem('projectId', projectId);
@@ -67,6 +67,15 @@ export default function AppShowcase() {
     setHasStarted(true);
   }
 
+  function handleDeleteProject(projectId: string) {
+    if (projectId !== currentProjectId) return;
+
+    setProjectId(null);
+    setCurrentProjectId(null);
+    setCurrentStep(1);
+    sessionStorage.removeItem('projectId');
+  }
+
   return (
     <AppShell
       navigation={
@@ -77,7 +86,7 @@ export default function AppShowcase() {
         />
       }
       projects={
-        <div>
+        <div className="flex h-full min-h-0 flex-col">
           <div className="mb-6 border-b border-[#D9D3C7] pb-4">
             <h1 className="font-sans text-xl font-bold tracking-tight text-[#1E2430]">
               Draft<span className="text-[#C46A2B]">2</span>Device
@@ -87,6 +96,7 @@ export default function AppShowcase() {
           <ProjectHistory
             currentProjectId={currentProjectId}
             onSelectProject={handleSelectProject}
+            onDeleteProject={handleDeleteProject}
             onCreateProject={handleStart}
             isCreating={isStarting}
             refreshTrigger={refreshTrigger}

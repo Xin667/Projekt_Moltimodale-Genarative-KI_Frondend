@@ -5,7 +5,7 @@ import { useFetch } from "./store"
 /// Liste aller Projekte abrufen
 export const useListProjects = () => {
   const { commonFetch, isLoading, data } = useFetch<ProjectListResponse>({
-    url: "http://127.0.0.1:8000/projects",
+    url: "/projects",
     method: "GET",
   });
 
@@ -22,7 +22,7 @@ export const useGetProject = () => {
  // of creating something that is self documenting. We put Project because we know
  // that is what this endpoint will always return. 
   const { commonFetch, isLoading, data } = useFetch<Project>({
-    url: "http://127.0.0.1:8000/projects",
+    url: "/projects",
     method: "GET",
   });
 
@@ -35,11 +35,23 @@ export const useGetProject = () => {
 
 export const useCreateProject = () => {
   const { commonFetch, isLoading, data } = useFetch<Project>({
-    url: "http://127.0.0.1:8000/projects",
+    url: "/projects",
     method: "POST",
   });
 
   const createProject = (input: CreateProject ) => commonFetch({ input });
 
   return { createProject, isLoading, data };
+};
+
+export const useDeleteProject = () => {
+  const { commonFetch, isLoading } = useFetch<{ message: string }>({
+    url: "/projects",
+    method: "DELETE",
+  });
+
+  const deleteProject = (projectId: string) =>
+    commonFetch({ input: { project_id: projectId } });
+
+  return { deleteProject, isLoading };
 };
