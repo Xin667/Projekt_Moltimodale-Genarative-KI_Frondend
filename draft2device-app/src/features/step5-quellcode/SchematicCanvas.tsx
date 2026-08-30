@@ -155,7 +155,7 @@ export function SchematicCanvas({
                 className="cursor-pointer"
                 opacity={dimmed ? 0.35 : 1}
                 onClick={() => onSelect({ kind: 'component', component: comp })}
-                onMouseEnter={() => setHoveredConnectionIds(new Set(hoverIds))}
+onMouseEnter={() => setHoveredConnectionIds(hoverIds.length > 0 ? new Set(hoverIds) : null)}
                 onMouseLeave={() => setHoveredConnectionIds(null)}
               >
                 <rect
