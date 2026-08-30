@@ -29,17 +29,29 @@ export function useFetch<T> ({ url, method }: UseFetchProps) {
   }: CommonFetch) => {
     setIsLoading(true);
 
-    const response = await fetch(url, {
-      method,
-      ...DEFAULT_FETCH_OPTIONS, // this should be defined as a const in a separate file
-      ...fetchOptions, // this allows you to override any default fetch options on a case by case basis
-      body: JSON.stringify(input),
-    });
+    try {
+      const requestUrl =
+        method === "DELETE" && input?.project_id
+          ? `${url}/${input.project_id}`
+          : url;
+      const response = await fetch(requestUrl, {
+        method,
+        ...DEFAULT_FETCH_OPTIONS, // this should be defined as a const in a separate file
+        ...fetchOptions, // this allows you to override any default fetch options on a case by case basis
+        ...(method === "GET" || method === "DELETE" || input === undefined
+          ? {}
+          : { body: JSON.stringify(input) }),
+      });
 
-    const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
 
-    setIsLoading(false);
-    setData(data);
+      const data = await response.json();
+      setData(data);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return { isLoading, commonFetch, data };

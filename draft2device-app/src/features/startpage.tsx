@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { Button } from '../components/ui/button';
 
 type StartPageProps = {
-  onStart: () => Promise<void>;
+  onStart: (name: string) => Promise<void>;
   isLoading: boolean;
   error: string | null;
 };
@@ -14,23 +14,12 @@ export function StartPage({
   error,
 }: StartPageProps) {
 
-  const [data, setData] = useState({});
-
-  const handleSubmit = (event) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const formData = new FormData(event.target);
+    const formData = new FormData(event.currentTarget);
+    const name = String(formData.get('project_name') ?? '').trim();
 
-    fetch('/projects', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-        },
-        body: formData,
-    })
-      .then((response) => response.json())
-      .then((result) => {
-        setData(result);
-      });
+    void onStart(name);
   };
 
 
@@ -51,19 +40,11 @@ export function StartPage({
             type="text"
             placeholder="Projektname"
             name="project_name"
-            required
           />
+          <Button className="mt-8" type="submit" disabled={isLoading}>
+            {isLoading ? 'Projekt wird erstellt …' : 'Projekt erstellen'}
+          </Button>
         </form>
-
-        
-        <Button
-          className="mt-8"
-          type="button"
-          onClick={onStart}
-          disabled={isLoading}
-        >
-          {isLoading ? 'Projekt wird erstellt …' : 'Projekt erstellen'}
-        </Button>
 
         {error && (
           <p
