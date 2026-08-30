@@ -1,7 +1,10 @@
 """
 FastAPI-Einstiegspunkt.
-- endpoints/projects/router.py   -> POST /projects
-- endpoints/analyze/router.py    -> POST /analyze
+- endpoints/projects/router.py        -> POST /projects
+- endpoints/analyze/router.py         -> POST /analyze
+- endpoints/hardware/router.py        -> POST /hardware, POST /hardware/select, GET /hardware/{project_id}
+- endpoints/glossary/router.py        -> POST /api/glossary/extract-and-explain
+- endpoints/circuit_diagram/router.py -> POST /circuit-diagram, GET /circuit-diagram/{project_id}
 
 Vorbereitung:
 1. Installieren:
@@ -20,6 +23,9 @@ from contextlib import asynccontextmanager
 import db.db as db
 from endpoints.projects import router as projects_router
 from endpoints.analyze import router as analyze_router
+from endpoints.hardware import router as hardware_router
+from endpoints.glossary import router as glossary_router
+from endpoints.circuit_diagram import router as circuit_diagram_router  # <-- 1. Hier importieren
 
 
 @asynccontextmanager
@@ -35,3 +41,6 @@ app = FastAPI(lifespan=lifespan)
 # Jeden Endpoint-Router einzeln in die App einbinden.
 app.include_router(projects_router.router)
 app.include_router(analyze_router.router)
+app.include_router(hardware_router.router)
+app.include_router(glossary_router.router)
+app.include_router(circuit_diagram_router.router)  # <-- 2. Hier registrieren

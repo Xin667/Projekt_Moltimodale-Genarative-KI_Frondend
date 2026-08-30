@@ -1,30 +1,33 @@
 /**
  * Typen für den Backend-Vertrag (FastAPI, http://localhost:8000).
- *
  */
 
-export type ActorType = 'Human' | 'Object' | 'Animal' | 'Other'
-export type TriggerType = 'Sensor' | 'User-Interaction' | 'Time/Timer' | 'Other'
-export type QuestionType = 'SingleChoice' | 'MultipleChoice' | 'Text'
+export type ActorType = 'Human' | 'Object' | 'Animal' | 'Other';
+export type TriggerType = 'Sensor' | 'User-Interaction' | 'Time/Timer' | 'Other';
+export type QuestionType = 'SingleChoice' | 'MultipleChoice' | 'Text';
+
+// ==========================================
+// Projekt-Verwaltung (/projects)
+// ==========================================
 
 export interface CreateProject {
-  project_name: string
+  project_name: string;
 }
 
 export interface GetProjectID {
-  project_id: string
+  project_id: string;
 }
 
 export interface Project {
-  id: string
-  name: string
-  created_at: string
-  updated_at: string
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ProjectMetadata {
-  working_title: string
-  core_intention: string
+  working_title: string;
+  core_intention: string;
 }
 
 export interface ProjectListResponse {
@@ -32,68 +35,229 @@ export interface ProjectListResponse {
 }
 
 export interface CreateProjectResponse {
-  project_id: number;
+  project_id: number | string;
 }
 
+// ==========================================
+// Analyse & Struktur (/analyze)
+// ==========================================
+
 export interface ActorEntity {
-  id: string
-  name: string
-  type: ActorType
-  description: string
+  id: string;
+  name: string;
+  type: ActorType;
+  description: string;
 }
 
 export interface SensorActuator {
-  id: string
-  concept_term: string
-  category: string
+  id: string;
+  concept_term: string;
+  category: string;
 }
 
 export interface TriggerAction {
-  id: string
-  trigger: string
-  trigger_type: TriggerType
-  actions: string[]
+  id: string;
+  trigger: string;
+  trigger_type: TriggerType;
+  actions: string[];
   /** null = Übergang bleibt im selben Zustand. */
-  target_state_id: string | null
+  target_state_id: string | null;
 }
 
 /** Ein Zustand des Zustandsautomaten. Nicht "State", um Verwechslung mit UI-State zu vermeiden. */
 export interface MachineState {
-  id: string
-  name: string
-  description: string
-  is_initial_state: boolean
-  entry_actions: string[]
-  trigger_actions: TriggerAction[]
+  id: string;
+  name: string;
+  description: string;
+  is_initial_state: boolean;
+  entry_actions: string[];
+  trigger_actions: TriggerAction[];
 }
 
 export interface OpenQuestion {
-  id: string
-  question: string
+  id: string;
+  question: string;
   /** id eines Elements aus states / sensors / actuators / actors_entities. */
-  reference: string
-  type: QuestionType
+  reference: string;
+  type: QuestionType;
   /** null bei type === 'Text'. */
-  options: string[] | null
+  options: string[] | null;
 }
 
 /** Antwort von POST /analyze. Alle Arrays können leer sein. */
 export interface AnalyzeResult {
-  project_id: string
-  project_metadata: ProjectMetadata
-  actors_entities: ActorEntity[]
-  sensors: SensorActuator[]
-  actuators: SensorActuator[]
-  states: MachineState[]
-  global_actions: TriggerAction[]
-  open_questions: OpenQuestion[]
+  project_id: string;
+  project_metadata: ProjectMetadata;
+  actors_entities: ActorEntity[];
+  sensors: SensorActuator[];
+  actuators: SensorActuator[];
+  states: MachineState[];
+  global_actions: TriggerAction[];
+  open_questions: OpenQuestion[];
 }
 
 export interface AnalyzeParams {
-  projectId: string
-  message: string
-  imageFile?: File | null
+  projectId: string;
+  message: string;
+  imageFile?: File | null;
 }
 
 /** Antworten des Nutzers, indiziert nach OpenQuestion.id. */
-export type AnswersMap = Record<string, string | string[]>
+export type AnswersMap = Record<string, string | string[]>;
+
+// ==========================================
+// Hardware-Endpoints (/hardware, /hardware/select)
+// ==========================================
+
+export interface HardwareOption {
+  id: string;
+  name: string;
+  interface: string;
+  pros_cons: string[];
+  cost: string;
+  availability: string;
+  product_link: string | null;
+  voltage: string;
+  current: string;
+  connector: string;
+  dimensions: string | null;
+  resolution: string | null;
+  measurement_range: string | null;
+  operating_temp: string | null;
+  additional_notes: string | null;
+  selected: boolean;
+}
+
+export interface HardwareComponent {
+  id: string;
+  component_name: string;
+  concept_ref_id: string;
+  options: HardwareOption[];
+}
+
+export interface ControllerOption {
+  id: string;
+  name: string;
+  pros_cons: string[];
+  cost: string;
+  availability: string;
+  product_link: string | null;
+  voltage: string;
+  current: string;
+  supported_interfaces: string[];
+  wireless_connectivity: string | null;
+  gpio_count: string | null;
+  dimensions: string | null;
+  operating_temp: string | null;
+  compatibility_notes: string;
+  additional_notes: string | null;
+  selected: boolean;
+}
+
+export interface ControllerComponent {
+  id: string;
+  role: string;
+  connected_component_ids: string[];
+  options: ControllerOption[];
+}
+
+export interface HardwareResult {
+  project_id: string;
+  hardware_components: HardwareComponent[];
+  controllers: ControllerComponent[];
+}
+
+export interface HardwareSelectionItem {
+  target_id: string;
+  option_id: string;
+}
+
+// ==========================================
+// Schaltplan-Endpoints (/circuit-diagram)
+// ==========================================
+
+export type SignalType =
+  | 'power'
+  | 'ground'
+  | 'digital'
+  | 'analog'
+  | 'pwm'
+  | 'i2c'
+  | 'spi'
+  | 'uart'
+  | 'other';
+
+export type WireColor =
+  | 'red'
+  | 'black'
+  | 'blue'
+  | 'yellow'
+  | 'green'
+  | 'orange'
+  | 'purple'
+  | 'brown'
+  | 'gray'
+  | 'white';
+
+export type ComponentCategory =
+  | 'Microcontroller'
+  | 'Sensor'
+  | 'Actuator'
+  | 'Power Supply'
+  | 'Passive Component'
+  | 'Other';
+
+export interface ComponentPin {
+  id: string;
+  label: string;
+  signal_type: SignalType;
+  description: string;
+}
+
+export interface CircuitComponent {
+  id: string;
+  name: string;
+  category: ComponentCategory;
+  description: string;
+  pins: ComponentPin[];
+}
+
+export interface Connection {
+  id: string;
+  from_component_id: string;
+  from_pin_id: string;
+  to_component_id: string;
+  to_pin_id: string;
+  signal_type: SignalType;
+  wire_color: WireColor;
+  description: string;
+}
+
+export interface AssemblyStep {
+  step_number: number;
+  instruction: string;
+  connection_ids: string[];
+}
+
+export interface PowerRequirement {
+  component_id: string;
+  voltage: string;
+  note: string;
+}
+
+export interface CircuitDiagram {
+  title: string;
+  summary: string;
+  components: CircuitComponent[];
+  connections: Connection[];
+  assembly_steps: AssemblyStep[];
+  power_requirements: PowerRequirement[];
+  safety_notes: string[];
+}
+
+export interface CircuitDiagramResponse extends CircuitDiagram {
+  project_id: string;
+  used_dummy_hardware_input: boolean;
+  hardware_components_input: any;
+  hardware_updated: boolean;
+}
