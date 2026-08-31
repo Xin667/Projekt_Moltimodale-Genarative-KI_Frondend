@@ -17,7 +17,7 @@ const WIRE_COLOR_MAP: Record<string, string> = {
   white: '#F3F4F6',
 };
 
-// Signal-Typen für die Legende rechts
+// Signal-Typen für die Legende
 const SIGNAL_TYPES = [
   { label: 'power', color: '#EF4444' },
   { label: 'ground', color: '#4B5563' },
@@ -25,6 +25,18 @@ const SIGNAL_TYPES = [
   { label: 'analog', color: '#10B981' },
   { label: 'i2c', color: '#F97316' },
 ];
+
+const SIGNAL_DOT_COLORS: Record<string, string> = {
+  power: '#EF4444',
+  ground: '#4B5563',
+  digital: '#3B82F6',
+  analog: '#10B981',
+  pwm: '#A855F7',
+  i2c: '#F97316',
+  spi: '#B45309',
+  uart: '#22C55E',
+  other: '#9CA3AF',
+};
 
 interface PinCoords {
   x: number;
@@ -38,6 +50,7 @@ export const Step4Schaltplan: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStep, setSelectedStep] = useState<number | null>(null);
+  const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
   const [refinePrompt, setRefinePrompt] = useState<string>('');
   const [isRefining, setIsRefining] = useState<boolean>(false);
 
@@ -137,6 +150,7 @@ export const Step4Schaltplan: React.FC = () => {
       setData(res);
       setRefinePrompt('');
       setSelectedStep(null);
+      setSelectedComponentId(null);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -174,6 +188,17 @@ export const Step4Schaltplan: React.FC = () => {
       ? data.assembly_steps.find((s) => s.step_number === selectedStep)?.connection_ids || []
       : null;
 
+  const selectedComponent = selectedComponentId
+    ? data.components.find((c) => c.id === selectedComponentId) || null
+    : null;
+
+  const componentCardClass = (comp: CircuitComponent) =>
+    `bg-[#181C24] border rounded-2xl p-4 shadow-lg text-left cursor-pointer transition-all ${
+      selectedComponentId === comp.id
+        ? 'border-[#C46A2B] ring-1 ring-[#C46A2B]/60'
+        : 'border-[#2B313F] hover:border-[#4B5563]'
+    }`;
+
   return (
     <div className="space-y-6 w-full max-w-full">
       {/* Header-Bereich */}
@@ -186,13 +211,13 @@ export const Step4Schaltplan: React.FC = () => {
         </p>
       </div>
 
-      {/* 3-Spalten Haupt-Layout wie im Bild */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
-        
+      {/* Haupt-Layout: Schaltplan links, Info-Seitenleiste rechts */}
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-5 items-start">
+
         {/* SPALTE 1: Schaltplan Canvas (Schwarz mit Karten) */}
         <div
           ref={canvasRef}
-          className="xl:col-span-6 bg-[#11141A] border border-[#232836] text-white rounded-2xl p-4 min-h-[640px] relative flex flex-col shadow-xl"
+          className="min-w-0 bg-[#11141A] border border-[#232836] text-white rounded-2xl p-4 min-h-[640px] relative flex flex-col shadow-xl"
         >
           {/* Canvas Top Bar mit Zoom-Controls */}
           <div className="flex justify-between items-center pb-3 border-b border-gray-800/80 mb-2 z-30">
@@ -294,7 +319,8 @@ export const Step4Schaltplan: React.FC = () => {
                   {(controllers.length > 0 ? controllers : [data.components[0]]).map((comp: CircuitComponent) => (
                     <div
                       key={comp.id}
-                      className="bg-[#181C24] border border-[#2B313F] rounded-2xl p-4 shadow-lg text-left"
+                      onClick={() => setSelectedComponentId(comp.id)}
+                      className={componentCardClass(comp)}
                     >
                       <div className="flex justify-between items-start gap-2 mb-4">
                         <span className="font-bold text-xs text-gray-100 leading-tight">{comp.name}</span>
@@ -314,7 +340,8 @@ export const Step4Schaltplan: React.FC = () => {
                                   if (el) pinRefs.current.set(pinKey, el);
                                   else pinRefs.current.delete(pinKey);
                                 }}
-                                className="w-2.5 h-2.5 rounded-full bg-[#E67E22] ring-4 ring-[#E67E22]/20 inline-block"
+                                className="w-2.5 h-2.5 rounded-full ring-4 ring-[#E67E22]/20 inline-block"
+                                style={{ backgroundColor: SIGNAL_DOT_COLORS[pin.signal_type] || '#E67E22' }}
                                 title={pin.description}
                               />
                             </div>
@@ -330,7 +357,8 @@ export const Step4Schaltplan: React.FC = () => {
                   {(controllers.length > 0 ? peripherals : data.components.slice(1)).map((comp: CircuitComponent) => (
                     <div
                       key={comp.id}
-                      className="bg-[#181C24] border border-[#2B313F] rounded-2xl p-3.5 shadow-lg text-left"
+                      onClick={() => setSelectedComponentId(comp.id)}
+                      className={componentCardClass(comp)}
                     >
                       <div className="flex justify-between items-start gap-2 mb-3">
                         <span className="font-bold text-[11px] text-gray-100 leading-tight">{comp.name}</span>
@@ -351,7 +379,10 @@ export const Step4Schaltplan: React.FC = () => {
                               }}
                               className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#0F1218] border border-[#2B313F] rounded-full text-[10px] text-gray-200 font-mono"
                             >
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#0284C7]" />
+                              <span
+                                className="w-1.5 h-1.5 rounded-full"
+                                style={{ backgroundColor: SIGNAL_DOT_COLORS[pin.signal_type] || '#0284C7' }}
+                              />
                               {pin.label}
                             </span>
                           );
@@ -365,61 +396,102 @@ export const Step4Schaltplan: React.FC = () => {
           </div>
         </div>
 
-        {/* SPALTE 2: Montageschritte mit schöner Nummerierung & Nav-Buttons */}
-        <div className="xl:col-span-4 bg-white border border-[#D9D3C7] rounded-2xl p-5 shadow-sm">
-          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
-            <h3 className="font-bold text-base text-[#1E2430]">Montageschritte</h3>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={handlePrevStep}
-                className="w-7 h-7 flex items-center justify-center border border-[#D9D3C7] rounded-lg text-xs hover:bg-gray-50 text-gray-700"
-                title="Vorheriger Schritt"
-              >
-                ←
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedStep(null)}
-                className="px-2.5 h-7 flex items-center justify-center border border-[#D9D3C7] rounded-lg text-xs hover:bg-gray-50 text-gray-700"
-              >
-                alle
-              </button>
-              <button
-                type="button"
-                onClick={handleNextStep}
-                className="w-7 h-7 flex items-center justify-center border border-[#D9D3C7] rounded-lg text-xs hover:bg-gray-50 text-gray-700"
-                title="Nächster Schritt"
-              >
-                →
-              </button>
+        {/* SPALTE 2: Info-Seitenleiste (Montageschritte, Details, Legende, Strom, Sicherheit) */}
+        <div className="space-y-4 min-w-0">
+          {/* Montageschritte */}
+          <div className="bg-white border border-[#D9D3C7] rounded-2xl p-5 shadow-sm">
+            <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+              <h3 className="font-bold text-base text-[#1E2430]">Montageschritte</h3>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handlePrevStep}
+                  className="w-7 h-7 flex items-center justify-center border border-[#D9D3C7] rounded-lg text-xs hover:bg-gray-50 text-gray-700"
+                  title="Vorheriger Schritt"
+                >
+                  ←
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStep(null)}
+                  className="px-2.5 h-7 flex items-center justify-center border border-[#D9D3C7] rounded-lg text-xs hover:bg-gray-50 text-gray-700"
+                >
+                  alle
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextStep}
+                  className="w-7 h-7 flex items-center justify-center border border-[#D9D3C7] rounded-lg text-xs hover:bg-gray-50 text-gray-700"
+                  title="Nächster Schritt"
+                >
+                  →
+                </button>
+              </div>
             </div>
+
+            <ol className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+              {data.assembly_steps.map((step) => {
+                const isSelected = selectedStep === step.step_number;
+                return (
+                  <li
+                    key={step.step_number}
+                    onClick={() => setSelectedStep(step.step_number)}
+                    className={`text-xs p-3.5 rounded-xl cursor-pointer transition-all border leading-relaxed break-words ${
+                      isSelected
+                        ? 'border-[#C46A2B] bg-[#FFF9F5] ring-1 ring-[#C46A2B] font-medium shadow-sm'
+                        : 'border-gray-200/80 hover:border-[#D9D3C7] bg-white hover:bg-gray-50/50 text-[#5A6172]'
+                    }`}
+                  >
+                    <span className="font-bold text-[#C46A2B] mr-2">{step.step_number}.</span>
+                    <GlossaryText text={step.instruction} />
+                  </li>
+                );
+              })}
+            </ol>
           </div>
 
-          <ol className="space-y-3 max-h-[560px] overflow-y-auto pr-1">
-            {data.assembly_steps.map((step) => {
-              const isSelected = selectedStep === step.step_number;
-              return (
-                <li
-                  key={step.step_number}
-                  onClick={() => setSelectedStep(step.step_number)}
-                  className={`text-xs p-3.5 rounded-xl cursor-pointer transition-all border leading-relaxed break-words ${
-                    isSelected
-                      ? 'border-[#C46A2B] bg-[#FFF9F5] ring-1 ring-[#C46A2B] font-medium shadow-sm'
-                      : 'border-gray-200/80 hover:border-[#D9D3C7] bg-white hover:bg-gray-50/50 text-[#5A6172]'
-                  }`}
-                >
-                  <span className="font-bold text-[#C46A2B] mr-2">{step.step_number}.</span>
-                  <GlossaryText text={step.instruction} />
-                </li>
-              );
-            })}
-          </ol>
-        </div>
+          {/* Bauteil-Details (Hardware-Erklärung) */}
+          <div className="bg-white border border-[#D9D3C7] rounded-2xl p-5 shadow-sm">
+            <h4 className="font-bold text-xs text-[#1E2430] uppercase tracking-wider mb-3">
+              Bauteil-Details
+            </h4>
+            {selectedComponent ? (
+              <div className="space-y-3 text-xs">
+                <div>
+                  <span className="font-semibold text-[#1E2430] leading-tight block">
+                    {selectedComponent.name}
+                  </span>
+                  <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 bg-[#FAF8F4] border border-[#D9D3C7] text-[#5A6172] rounded mt-1 inline-block">
+                    {selectedComponent.category}
+                  </span>
+                </div>
+                <p className="text-[#5A6172] leading-relaxed">
+                  <GlossaryText text={selectedComponent.description} />
+                </p>
+                <ul className="space-y-2 border-t border-gray-100 pt-2">
+                  {selectedComponent.pins.map((pin) => (
+                    <li key={pin.id} className="flex items-start gap-2">
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0 mt-1"
+                        style={{ backgroundColor: SIGNAL_DOT_COLORS[pin.signal_type] || '#9CA3AF' }}
+                      />
+                      <span className="text-[#1E2430] leading-snug">
+                        <span className="font-mono font-semibold">{pin.label}</span>
+                        <span className="text-[#9CA3AF]"> ({pin.signal_type})</span>
+                        <span className="block text-[#5A6172]">{pin.description}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-xs text-[#5A6172]">
+                Klicke im Schaltplan auf ein Bauteil, um hier seine Funktion und Pins zu sehen.
+              </p>
+            )}
+          </div>
 
-        {/* SPALTE 3: Signalfarben + Stromversorgung (Kompakt rechts) */}
-        <div className="xl:col-span-2 space-y-4">
-          {/* Signalfarben Box */}
+          {/* Signalfarben */}
           <div className="bg-white border border-[#D9D3C7] rounded-2xl p-4 shadow-sm">
             <h4 className="font-bold text-xs text-[#1E2430] uppercase tracking-wider mb-3">Signalfarben</h4>
             <div className="space-y-2 text-xs text-[#5A6172]">
@@ -432,10 +504,10 @@ export const Step4Schaltplan: React.FC = () => {
             </div>
           </div>
 
-          {/* Stromversorgungs-Box */}
+          {/* Stromversorgung */}
           <div className="bg-white border border-[#D9D3C7] rounded-2xl p-4 shadow-sm">
             <h4 className="font-bold text-xs text-[#1E2430] uppercase tracking-wider mb-3">Stromversorgung</h4>
-            <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
               {data.power_requirements.map((p, idx) => {
                 const comp = data.components.find((c) => c.id === p.component_id);
                 return (
@@ -452,6 +524,23 @@ export const Step4Schaltplan: React.FC = () => {
               })}
             </div>
           </div>
+
+          {/* Sicherheitshinweise */}
+          {data.safety_notes.length > 0 && (
+            <div className="bg-white border border-[#D9D3C7] rounded-2xl p-4 shadow-sm">
+              <h4 className="font-bold text-xs text-[#1E2430] uppercase tracking-wider mb-3">
+                Sicherheitshinweise
+              </h4>
+              <ul className="space-y-2 text-[11px] text-[#5A6172] leading-snug">
+                {data.safety_notes.map((note, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span className="text-[#C46A2B] font-bold shrink-0">•</span>
+                    <GlossaryText text={note} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
       </div>

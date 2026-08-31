@@ -12,7 +12,8 @@ import { Step1Input } from './features/step1-input/Step1Input';
 import { Step2Klaerung } from './features/step2-klaerung/Step2Klaerung';
 import { Step3Hardware } from './features/step3-hardware/Step3Hardware';
 import { Step4Schaltplan } from './features/step4-schaltplan/Step4Schaltplan';
-import { Step5Ergebnis } from './features/step5-ergebnis/Step5Ergebnis';
+import { Step5Quellcode } from './features/step5-quellcode/Step5Quellcode';
+import { Step6Ergebnis } from './features/step6-ergebnis/Step6Ergebnis';
 
 import { Button } from './components/ui/button';
 
@@ -106,20 +107,21 @@ export default function AppShowcase() {
         {currentStep === 2 && <Step2Klaerung />}
         {currentStep === 3 && <Step3Hardware />}
         {currentStep === 4 && <Step4Schaltplan />}
-        {currentStep === 5 && <Step5Ergebnis />}
+        {currentStep === 5 && <Step5Quellcode />}
+        {currentStep === 6 && <Step6Ergebnis />}
       </div>
 
       <div className="flex justify-end">
         <Button
           variant="default"
           onClick={() => {
-            if (currentStep < 5) {
+            if (currentStep < 6) {
               setCurrentStep(currentStep + 1);
             }
           }}
-          disabled={currentStep >= 5}
+          disabled={currentStep >= 6}
         >
-          {currentStep < 5
+          {currentStep < 6
             ? `Weiter zu Schritt ${currentStep + 1}`
             : 'Fertig'}
         </Button>

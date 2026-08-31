@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { useDeleteProject, useListProjects } from '../api/request';
+import { deleteProject, listProjects } from '../api/api';
 import type { Project } from '../api/types';
 
 interface ProjectHistoryProps {
@@ -31,18 +31,26 @@ export function ProjectHistory({
   isCreating,
   refreshTrigger,
 }: ProjectHistoryProps) {
-  const { listProjects, isLoading, data } = useListProjects();
-  const { deleteProject, isLoading: isDeleting } = useDeleteProject();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showAllProjects, setShowAllProjects] = useState(false);
+
+  const loadProjects = useCallback(() => {
+    setIsLoading(true);
+    listProjects()
+      .then((res) => setProjects(res.projects))
+      .catch(() => setProjects([]))
+      .finally(() => setIsLoading(false));
+  }, []);
 
   useEffect(() => {
     setShowAllProjects(false);
-    listProjects();
+    loadProjects();
     // refreshTrigger sorgt dafür, dass wir nach dem Anlegen eines neuen
     // Projekts die Liste erneut abrufen
-  }, [refreshTrigger]);
+  }, [refreshTrigger, loadProjects]);
 
-  const projects: Project[] = data?.projects ?? [];
   const visibleProjects = showAllProjects
     ? projects
     : projects.slice(0, PROJECTS_PER_PAGE);
@@ -51,11 +59,16 @@ export function ProjectHistory({
   async function handleDelete(project: Project) {
     if (!window.confirm(`Projekt "${project.name}" wirklich löschen?`)) return;
 
-    await deleteProject(project.id);
-    if (project.id === currentProjectId) {
-      onDeleteProject?.(project.id);
+    setIsDeleting(true);
+    try {
+      await deleteProject(project.id);
+      if (project.id === currentProjectId) {
+        onDeleteProject?.(project.id);
+      }
+      await loadProjects();
+    } finally {
+      setIsDeleting(false);
     }
-    await listProjects();
   }
 
   return (

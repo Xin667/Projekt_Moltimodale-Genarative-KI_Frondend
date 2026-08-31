@@ -1,0 +1,10 @@
+{
+  "name": "draft2device",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix draft2device-app run dev",
+    "build": "npm --prefix draft2device-app run build",
+    "lint": "npm --prefix draft2device-app run lint",
+    "preview": "npm --prefix draft2device-app run preview"
+  }
+}
