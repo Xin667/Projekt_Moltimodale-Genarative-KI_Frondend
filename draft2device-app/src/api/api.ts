@@ -30,6 +30,8 @@ import type {
   SignalType,
   WireColor,
   ComponentCategory,
+  Project,
+  ProjectListResponse,
 } from '@/api/types'
 
 // ---------------------------------------------------------------------------
@@ -416,13 +418,8 @@ export function resetMockState(): void {
   mockAnalyzeCalls = 0
 }
 
-<<<<<<< HEAD
-/** POST /projects */
-export async function createProject(): Promise<string> {
-=======
 /** POST /projects — startet ein Projekt und liefert dessen project_id. */
 export async function createProject(name?: string): Promise<string> {
->>>>>>> origin/main
   if (MOCK_MODE) {
     await delay(MOCK_CREATE_DELAY_MS)
     return MOCK_PROJECT_ID
@@ -439,6 +436,27 @@ export async function createProject(name?: string): Promise<string> {
   }
 
   return String(projectId)
+}
+
+/** GET /projects — alle bisher angelegten Projekte, neueste zuerst. */
+export async function listProjects(): Promise<ProjectListResponse> {
+  const data = await request('/projects', { method: 'GET' })
+  const record = asRecord(data)
+  const projects = asArray(record.projects).map((raw): Project => {
+    const p = asRecord(raw)
+    return {
+      id: asString(p.id),
+      name: asString(p.name),
+      created_at: asString(p.created_at),
+      updated_at: asString(p.updated_at),
+    }
+  })
+  return { projects }
+}
+
+/** DELETE /projects/{id} — löscht ein Projekt samt Chat-Historie, Artefakten und Bildern. */
+export async function deleteProject(projectId: string): Promise<void> {
+  await request(`/projects/${encodeURIComponent(projectId)}`, { method: 'DELETE' })
 }
 
 /** POST /analyze */

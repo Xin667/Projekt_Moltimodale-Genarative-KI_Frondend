@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import type { OpenQuestion, AnswersMap, AnalyzeResult } from '@/api/types';
 import { useProjectStore } from '@/store/state';
-import { useAppStore } from '@/app/store';
 import { GlossaryText } from '@/components/GlossaryText';
 
 /** Findet den menschenlesbaren Namen des referenzierten Elements. */
@@ -26,7 +25,6 @@ export const Step2Klaerung: React.FC = () => {
   const status = useProjectStore((s) => s.status);
   const storeError = useProjectStore((s) => s.error);
   const submitAnswers = useProjectStore((s) => s.submitAnswers);
-  const setCurrentStep = useAppStore((s) => s.setCurrentStep);
 
   const [answers, setAnswers] = useState<AnswersMap>({});
   const [extraPrompt, setExtraPrompt] = useState('');
