@@ -604,3 +604,36 @@ export async function getCircuitDiagram(projectId: string): Promise<CircuitDiagr
   const data = await request(`/circuit-diagram/${projectId}`, { method: 'GET' })
   return normalizeCircuitDiagramResult(data)
 }
+
+
+
+// ---------------------------------------------------------------------------
+// Glossar-Endpunkte (/api/glossary)
+// ---------------------------------------------------------------------------
+
+export interface ExtractedTerm {
+  term: string
+  explanation: string
+  category?: string
+}
+
+/**
+ * POST /api/glossary/extract-and-explain — extrahiert Hardware-Begriffe und liefert Erklärungen.
+ */
+export async function extractAndExplainTerms(text: string): Promise<ExtractedTerm[]> {
+  if (!text || text.trim().length < 3) {
+    return []
+  }
+
+  try {
+    const data = await request('/api/glossary/extract-and-explain', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    })
+    return (data as { terms?: ExtractedTerm[] }).terms || []
+  } catch (error) {
+    console.warn('Glossar-Abfrage fehlgeschlagen (Fallback aktiv):', error)
+    return []
+  }
+}

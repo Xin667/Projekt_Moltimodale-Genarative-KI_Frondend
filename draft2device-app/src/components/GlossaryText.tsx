@@ -1,73 +1,99 @@
-import React, { useEffect, useState } from 'react';
-import { requestIoTExplanation, GLOBAL_AI_TERMS, subscribeToGlossary } from '@/lib/ai-glossary';
-import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
+import React, { useState, useEffect } from 'react';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card';
+import { extractAndExplainTerms, type ExtractedTerm } from '@/api/api';
 
-export const GlossaryText: React.FC<{ text?: string; className?: string }> = ({
-  text = '',
-  className = '',
-}) => {
-  const [, setVersion] = useState(0);
+const cache = new Map<string, ExtractedTerm[]>();
+
+// Begriffe, die NIEMALS unterstrichen werden sollen (zu banal)
+const IGNORED_TERMS = new Set([
+  'led', 'leds', '5 mm', '3 mm', 'rot', 'grün', 'blau', 'taster',
+  'schalter', 'summer', 'buzzer', 'sensor', 'kabel', 'display',
+  'start', 'stop', 'strom', 'spannung', 'masse', 'gnd'
+]);
+
+interface GlossaryTextProps {
+  text: string | null | undefined;
+}
+
+export const GlossaryText: React.FC<GlossaryTextProps> = ({ text }) => {
+  const [terms, setTerms] = useState<ExtractedTerm[]>([]);
 
   useEffect(() => {
-    // Wenn ein neuer Text gerendert wird, KI-Analyse anstoßen
-    if (text) {
-      requestIoTExplanation(text);
+    if (!text || text.trim().length < 4) return;
+
+    if (cache.has(text)) {
+      setTerms(cache.get(text)!);
+      return;
     }
+
+    let isMounted = true;
+    extractAndExplainTerms(text).then((found) => {
+      if (isMounted && found && found.length > 0) {
+        // Trivial-Begriffe herausfiltern
+        const filtered = found.filter(
+          (item) => !IGNORED_TERMS.has(item.term.trim().toLowerCase())
+        );
+        cache.set(text, filtered);
+        setTerms(filtered);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
   }, [text]);
 
-  useEffect(() => {
-    // Reagiere sofort, sobald OpenAI neue Begriffe zurückgeliefert hat
-    const unsubscribe = subscribeToGlossary(() => {
-      setVersion((v) => v + 1);
-    });
-    return unsubscribe;
-  }, []);
-
   if (!text) return null;
+  if (!terms.length) return <span>{text}</span>;
 
-  // Alle von OpenAI bisher gelernten Begriffe sammeln
-  const allTerms = Array.from(GLOBAL_AI_TERMS.values());
-  if (allTerms.length === 0) {
-    return <span className={className}>{text}</span>;
-  }
-
-  // Längste Suchbegriffe zuerst sortieren
-  const sorted = [...allTerms].sort((a, b) => b.term.length - a.term.length);
-  const patterns = sorted.map((t) => t.term.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'));
-  const regex = new RegExp(`(${patterns.join('|')})`, 'gi');
-
+  // Längste Fachbegriffe zuerst sortieren
+  const sorted = [...terms].sort((a, b) => b.term.length - a.term.length);
+  const regex = new RegExp(`\\b(${sorted.map((t) => t.term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'gi');
   const parts = text.split(regex);
 
   return (
-    <span className={className}>
-      {parts.map((part, idx) => {
-        const item = GLOBAL_AI_TERMS.get(part.toLowerCase());
+    <span className="inline">
+      {parts.map((part, index) => {
+        const match = terms.find((t) => t.term.toLowerCase() === part.toLowerCase());
 
-        if (item) {
+        if (match) {
           return (
-            <HoverCard key={idx}>
-              <HoverCardTrigger className="font-semibold text-[#1E2430] underline decoration-dotted decoration-[#C46A2B] hover:text-[#C46A2B] cursor-help px-0.5 rounded hover:bg-orange-50 transition-colors inline-block">
-                {part}
+            <HoverCard key={index}>
+              <HoverCardTrigger>
+                <span
+                  onClick={(e) => e.stopPropagation()}
+                  className="cursor-help font-semibold text-slate-900 dark:text-slate-100 underline decoration-slate-900/60 dark:decoration-slate-400 decoration-dotted underline-offset-4 hover:decoration-solid transition-colors"
+                >
+                  {part}
+                </span>
               </HoverCardTrigger>
-              <HoverCardContent className="w-72 bg-white p-3.5 shadow-2xl border border-[#D9D3C7] rounded-xl text-left z-[9999]">
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <span className="font-bold text-xs text-[#1E2430]">{item.term}</span>
-                  {item.category && (
-                    <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 bg-orange-100 text-orange-800 border border-orange-200 rounded font-mono">
-                      {item.category}
+              <HoverCardContent className="z-50 w-72 rounded-lg border border-slate-700 bg-slate-900 p-3 text-slate-100 shadow-2xl text-left font-sans">
+                <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-slate-700">
+                  <span className="font-mono font-bold text-white text-xs">
+                    {match.term}
+                  </span>
+                  {match.category && (
+                    <span className="bg-slate-800 border border-slate-700 text-slate-300 text-[10px] px-1.5 py-0.5 rounded font-mono uppercase tracking-wider">
+                      {match.category}
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-[#5A6172] leading-relaxed mb-0">
-                  {item.explanation}
+                <p className="text-xs text-slate-300 leading-snug">
+                  {match.explanation}
                 </p>
               </HoverCardContent>
             </HoverCard>
           );
         }
 
-        return <React.Fragment key={idx}>{part}</React.Fragment>;
+        return <span key={index}>{part}</span>;
       })}
     </span>
   );
 };
+
+export default GlossaryText;

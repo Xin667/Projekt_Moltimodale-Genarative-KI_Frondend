@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import type { OpenQuestion, AnswersMap, AnalyzeResult } from '@/api/types';
 import { useProjectStore } from '@/store/state';
-import { GlossaryText } from '@/components/GlossaryText';
 
 /** Findet den menschenlesbaren Namen des referenzierten Elements. */
 function resolveReference(
@@ -97,17 +96,17 @@ export const Step2Klaerung: React.FC = () => {
           Schritt 2. Analyse & Struktur-Klärung
         </h2>
         <p className="text-sm text-[#5A6172] mt-1">
-          <GlossaryText text="Überprüfe die extrahierte Struktur und fülle die notwendigen Systemlücken aus." />
+          Überprüfe die extrahierte Struktur und fülle die notwendigen Systemlücken aus.
         </p>
       </div>
 
       {/* Projekt-Metadaten */}
       <div className="rounded-xl border border-[#C46A2B]/30 bg-orange-50/40 p-4">
         <h3 className="font-semibold text-sm text-[#1E2430]">
-          <GlossaryText text={project_metadata.working_title} />
+          {project_metadata.working_title}
         </h3>
         <p className="text-xs text-[#5A6172] mt-1">
-          <GlossaryText text={project_metadata.core_intention} />
+          {project_metadata.core_intention}
         </p>
       </div>
 
@@ -116,7 +115,7 @@ export const Step2Klaerung: React.FC = () => {
         {/* Akteure */}
         <div className="bg-[#FAF8F4] border border-[#D9D3C7] rounded-xl p-4">
           <h3 className="font-semibold text-sm text-[#1E2430]">
-            <GlossaryText text={`Akteure / Entitäten (${actors_entities.length})`} />
+            Akteure / Entitäten ({actors_entities.length})
           </h3>
           {actors_entities.length === 0 ? (
             <p className="text-xs text-[#5A6172] mt-2">Keine erkannt.</p>
@@ -124,14 +123,12 @@ export const Step2Klaerung: React.FC = () => {
             <ul className="mt-2 space-y-1">
               {actors_entities.map((a) => (
                 <li key={a.id} className="text-xs text-[#5A6172]">
-                  <span className="font-medium text-[#1E2430]">
-                    <GlossaryText text={a.name} />
-                  </span>
+                  <span className="font-medium text-[#1E2430]">{a.name}</span>
                   <span className="ml-1 text-[10px] text-[#9CA3AF]">
-                    (<GlossaryText text={a.type} />)
+                    ({a.type})
                   </span>
                   {' — '}
-                  <GlossaryText text={a.description} />
+                  {a.description}
                 </li>
               ))}
             </ul>
@@ -141,7 +138,7 @@ export const Step2Klaerung: React.FC = () => {
         {/* Sensoren & Aktoren */}
         <div className="bg-[#FAF8F4] border border-[#D9D3C7] rounded-xl p-4">
           <h3 className="font-semibold text-sm text-[#1E2430]">
-            <GlossaryText text={`Sensoren (${sensors.length}) / Aktoren (${actuators.length})`} />
+            Sensoren ({sensors.length}) / Aktoren ({actuators.length})
           </h3>
           {[...sensors, ...actuators].length === 0 ? (
             <p className="text-xs text-[#5A6172] mt-2">Keine erkannt.</p>
@@ -149,18 +146,14 @@ export const Step2Klaerung: React.FC = () => {
             <ul className="mt-2 space-y-1">
               {sensors.map((s) => (
                 <li key={s.id} className="text-xs text-[#5A6172]">
-                  📡 <span className="font-medium text-[#1E2430]">
-                    <GlossaryText text={s.concept_term} />
-                  </span>
+                  📡 <span className="font-medium text-[#1E2430]">{s.concept_term}</span>
                 </li>
               ))}
               {actuators.map((a) => (
                 <li key={a.id} className="text-xs text-[#5A6172]">
-                  🔧 <span className="font-medium text-[#1E2430]">
-                    <GlossaryText text={a.concept_term} />
-                  </span>
+                  🔧 <span className="font-medium text-[#1E2430]">{a.concept_term}</span>
                   <span className="ml-1 text-[10px] text-[#9CA3AF]">
-                    (<GlossaryText text={a.category} />)
+                    ({a.category})
                   </span>
                 </li>
               ))}
@@ -171,7 +164,7 @@ export const Step2Klaerung: React.FC = () => {
         {/* Zustände */}
         <div className="bg-[#FAF8F4] border border-[#D9D3C7] rounded-xl p-4">
           <h3 className="font-semibold text-sm text-[#1E2430]">
-            <GlossaryText text={`Zustände (${states.length})`} />
+            Zustände ({states.length})
           </h3>
           {states.length === 0 ? (
             <p className="text-xs text-[#5A6172] mt-2">Keine definiert.</p>
@@ -179,16 +172,14 @@ export const Step2Klaerung: React.FC = () => {
             <ul className="mt-2 space-y-1">
               {states.map((s) => (
                 <li key={s.id} className="text-xs text-[#5A6172]">
-                  <span className="font-medium text-[#1E2430]">
-                    <GlossaryText text={s.name} />
-                  </span>
+                  <span className="font-medium text-[#1E2430]">{s.name}</span>
                   {s.is_initial_state && (
                     <span className="ml-1 rounded bg-green-100 px-1.5 py-0.5 text-[10px] text-green-700">
                       Start
                     </span>
                   )}
                   {' — '}
-                  <GlossaryText text={s.description} />
+                  {s.description}
                 </li>
               ))}
             </ul>
@@ -201,13 +192,9 @@ export const Step2Klaerung: React.FC = () => {
             Status
           </h3>
           <p className="text-xs text-[#5A6172] mt-2">
-            <GlossaryText
-              text={
-                open_questions.length === 0
-                  ? 'Keine offenen Fragen — die Struktur ist vollständig.'
-                  : `${unansweredQuestions.length} von ${open_questions.length} Fragen noch offen.`
-              }
-            />
+            {open_questions.length === 0
+              ? 'Keine offenen Fragen — die Struktur ist vollständig.'
+              : `${unansweredQuestions.length} von ${open_questions.length} Fragen noch offen.`}
           </p>
         </div>
       </div>
@@ -301,11 +288,11 @@ function QuestionBlock({ question, structure, value, onChange }: QuestionBlockPr
   return (
     <div className="rounded-xl border border-[#D9D3C7] bg-white p-4">
       <p className="text-sm font-medium text-[#1E2430]">
-        <GlossaryText text={question.question} />
+        {question.question}
       </p>
       {referenceName && (
         <p className="text-xs text-[#9CA3AF] mt-1">
-          Bezieht sich auf: <span className="font-medium"><GlossaryText text={referenceName} /></span>
+          Bezieht sich auf: <span className="font-medium">{referenceName}</span>
         </p>
       )}
 
@@ -330,7 +317,7 @@ function QuestionBlock({ question, structure, value, onChange }: QuestionBlockPr
                   className="accent-[#C46A2B]"
                 />
                 <span className="text-sm text-[#1E2430]">
-                  <GlossaryText text={option} />
+                  {option}
                 </span>
               </label>
             ))}
@@ -365,7 +352,7 @@ function QuestionBlock({ question, structure, value, onChange }: QuestionBlockPr
                     className="accent-[#C46A2B]"
                   />
                   <span className="text-sm text-[#1E2430]">
-                    <GlossaryText text={option} />
+                    {option}
                   </span>
                 </label>
               );

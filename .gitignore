@@ -45,3 +45,18 @@ htmlcov/
 
 # Tool Caches
 .eslintcache
+
+
+# Python / Backend-Dateien im Unterordner ignorieren
+draft2device-app/src/api/key.py
+draft2device-app/src/api/db/
+draft2device-app/src/api/endpoints/
+draft2device-app/src/api/main.py
+draft2device-app/src/api/config.py
+draft2device-app/src/api/static/
+
+# Oder alternativ direkt den gesamten Backend-Code & alle Python-Dateien:
+*.py
+**/src/api/db/
+**/src/api/endpoints/
+**/src/api/static/
