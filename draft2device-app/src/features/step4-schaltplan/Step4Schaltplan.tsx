@@ -211,13 +211,13 @@ export const Step4Schaltplan: React.FC = () => {
         </p>
       </div>
 
-      {/* Haupt-Layout: Schaltplan links, Info-Seitenleiste rechts */}
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-5 items-start">
+      {/* Haupt-Layout: Schaltplan oben (volle Breite), darunter Montageschritte & Infos */}
+      <div className="flex flex-col gap-6">
 
-        {/* SPALTE 1: Schaltplan Canvas (Schwarz mit Karten) */}
+        {/* SCHALTPLAN: oben, volle Breite */}
         <div
           ref={canvasRef}
-          className="min-w-0 bg-[#11141A] border border-[#232836] text-white rounded-2xl p-4 min-h-[640px] relative flex flex-col shadow-xl"
+          className="min-w-0 bg-[#11141A] border border-[#232836] text-white rounded-2xl p-4 min-h-[560px] relative flex flex-col shadow-xl"
         >
           {/* Canvas Top Bar mit Zoom-Controls */}
           <div className="flex justify-between items-center pb-3 border-b border-gray-800/80 mb-2 z-30">
@@ -396,60 +396,8 @@ export const Step4Schaltplan: React.FC = () => {
           </div>
         </div>
 
-        {/* SPALTE 2: Info-Seitenleiste (Montageschritte, Details, Legende, Strom, Sicherheit) */}
-        <div className="space-y-4 min-w-0">
-          {/* Montageschritte */}
-          <div className="bg-white border border-[#D9D3C7] rounded-2xl p-5 shadow-sm">
-            <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
-              <h3 className="font-bold text-base text-[#1E2430]">Montageschritte</h3>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={handlePrevStep}
-                  className="w-7 h-7 flex items-center justify-center border border-[#D9D3C7] rounded-lg text-xs hover:bg-gray-50 text-gray-700"
-                  title="Vorheriger Schritt"
-                >
-                  ←
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedStep(null)}
-                  className="px-2.5 h-7 flex items-center justify-center border border-[#D9D3C7] rounded-lg text-xs hover:bg-gray-50 text-gray-700"
-                >
-                  alle
-                </button>
-                <button
-                  type="button"
-                  onClick={handleNextStep}
-                  className="w-7 h-7 flex items-center justify-center border border-[#D9D3C7] rounded-lg text-xs hover:bg-gray-50 text-gray-700"
-                  title="Nächster Schritt"
-                >
-                  →
-                </button>
-              </div>
-            </div>
-
-            <ol className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-              {data.assembly_steps.map((step) => {
-                const isSelected = selectedStep === step.step_number;
-                return (
-                  <li
-                    key={step.step_number}
-                    onClick={() => setSelectedStep(step.step_number)}
-                    className={`text-xs p-3.5 rounded-xl cursor-pointer transition-all border leading-relaxed break-words ${
-                      isSelected
-                        ? 'border-[#C46A2B] bg-[#FFF9F5] ring-1 ring-[#C46A2B] font-medium shadow-sm'
-                        : 'border-gray-200/80 hover:border-[#D9D3C7] bg-white hover:bg-gray-50/50 text-[#5A6172]'
-                    }`}
-                  >
-                    <span className="font-bold text-[#C46A2B] mr-2">{step.step_number}.</span>
-                    <GlossaryText text={step.instruction} />
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
-
+        {/* INFO-KARTEN: horizontal unter dem Schaltplan */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
           {/* Bauteil-Details (Hardware-Erklärung) */}
           <div className="bg-white border border-[#D9D3C7] rounded-2xl p-5 shadow-sm">
             <h4 className="font-bold text-xs text-[#1E2430] uppercase tracking-wider mb-3">
@@ -543,6 +491,57 @@ export const Step4Schaltplan: React.FC = () => {
           )}
         </div>
 
+        {/* Montageschritte: ganz unten, volle Breite */}
+        <div className="bg-white border border-[#D9D3C7] rounded-2xl p-5 shadow-sm">
+          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+            <h3 className="font-bold text-base text-[#1E2430]">Montageschritte</h3>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={handlePrevStep}
+                className="w-7 h-7 flex items-center justify-center border border-[#D9D3C7] rounded-lg text-xs hover:bg-gray-50 text-gray-700"
+                title="Vorheriger Schritt"
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedStep(null)}
+                className="px-2.5 h-7 flex items-center justify-center border border-[#D9D3C7] rounded-lg text-xs hover:bg-gray-50 text-gray-700"
+              >
+                alle
+              </button>
+              <button
+                type="button"
+                onClick={handleNextStep}
+                className="w-7 h-7 flex items-center justify-center border border-[#D9D3C7] rounded-lg text-xs hover:bg-gray-50 text-gray-700"
+                title="Nächster Schritt"
+              >
+                →
+              </button>
+            </div>
+          </div>
+
+          <ol className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {data.assembly_steps.map((step) => {
+              const isSelected = selectedStep === step.step_number;
+              return (
+                <li
+                  key={step.step_number}
+                  onClick={() => setSelectedStep(step.step_number)}
+                  className={`text-xs p-3.5 rounded-xl cursor-pointer transition-all border leading-relaxed break-words ${
+                    isSelected
+                      ? 'border-[#C46A2B] bg-[#FFF9F5] ring-1 ring-[#C46A2B] font-medium shadow-sm'
+                      : 'border-gray-200/80 hover:border-[#D9D3C7] bg-white hover:bg-gray-50/50 text-[#5A6172]'
+                  }`}
+                >
+                  <span className="font-bold text-[#C46A2B] mr-2">{step.step_number}.</span>
+                  <GlossaryText text={step.instruction} />
+                </li>
+              );
+            })}
+          </ol>
+        </div>
       </div>
 
       {/* Refinement Bereich (Änderungswünsche an KI) */}
