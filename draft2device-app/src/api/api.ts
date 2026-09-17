@@ -459,6 +459,15 @@ export async function deleteProject(projectId: string): Promise<void> {
   await request(`/projects/${encodeURIComponent(projectId)}`, { method: 'DELETE' })
 }
 
+/** GET /projects/{project_id} — Gesamtzustand über alle Pipeline-Schritte */
+export async function getProjectOverview(projectId: string): Promise<any> {
+  if (!projectId) {
+    throw new ApiError('client', 'Keine project_id übergeben.')
+  }
+
+  return await request(`/projects/${encodeURIComponent(projectId)}`, { method: 'GET' })
+}
+
 /** POST /analyze */
 export async function analyze({
   projectId,
@@ -510,6 +519,16 @@ export function formatAnswersAsMessage(
   if (blocks.length === 0) return ''
 
   return `Antworten auf die offenen Fragen:\n\n${blocks.join('\n\n')}`
+}
+
+/** GET /analyze/{project_id} — Letzten Analysestand ohne LLM-Aufruf laden */
+export async function getLatestAnalysis(projectId: string): Promise<AnalyzeResult> {
+  if (!projectId) {
+    throw new ApiError('client', 'Kein aktives Projekt vorhanden.')
+  }
+
+  const data = await request(`/analyze/${encodeURIComponent(projectId)}`, { method: 'GET' })
+  return normalizeAnalyzeResult(data)
 }
 
 /** POST /hardware */
@@ -603,4 +622,37 @@ export async function getCircuitDiagram(projectId: string): Promise<CircuitDiagr
 
   const data = await request(`/circuit-diagram/${projectId}`, { method: 'GET' })
   return normalizeCircuitDiagramResult(data)
+}
+
+
+
+// ---------------------------------------------------------------------------
+// Glossar-Endpunkte (/api/glossary)
+// ---------------------------------------------------------------------------
+
+export interface ExtractedTerm {
+  term: string
+  explanation: string
+  category?: string
+}
+
+/**
+ * POST /api/glossary/extract-and-explain — extrahiert Hardware-Begriffe und liefert Erklärungen.
+ */
+export async function extractAndExplainTerms(text: string): Promise<ExtractedTerm[]> {
+  if (!text || text.trim().length < 3) {
+    return []
+  }
+
+  try {
+    const data = await request('/api/glossary/extract-and-explain', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    })
+    return (data as { terms?: ExtractedTerm[] }).terms || []
+  } catch (error) {
+    console.warn('Glossar-Abfrage fehlgeschlagen (Fallback aktiv):', error)
+    return []
+  }
 }
