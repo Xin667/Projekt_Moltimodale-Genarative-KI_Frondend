@@ -459,6 +459,15 @@ export async function deleteProject(projectId: string): Promise<void> {
   await request(`/projects/${encodeURIComponent(projectId)}`, { method: 'DELETE' })
 }
 
+/** GET /projects/{project_id} — Gesamtzustand über alle Pipeline-Schritte */
+export async function getProjectOverview(projectId: string): Promise<any> {
+  if (!projectId) {
+    throw new ApiError('client', 'Keine project_id übergeben.')
+  }
+
+  return await request(`/projects/${encodeURIComponent(projectId)}`, { method: 'GET' })
+}
+
 /** POST /analyze */
 export async function analyze({
   projectId,
@@ -510,6 +519,16 @@ export function formatAnswersAsMessage(
   if (blocks.length === 0) return ''
 
   return `Antworten auf die offenen Fragen:\n\n${blocks.join('\n\n')}`
+}
+
+/** GET /analyze/{project_id} — Letzten Analysestand ohne LLM-Aufruf laden */
+export async function getLatestAnalysis(projectId: string): Promise<AnalyzeResult> {
+  if (!projectId) {
+    throw new ApiError('client', 'Kein aktives Projekt vorhanden.')
+  }
+
+  const data = await request(`/analyze/${encodeURIComponent(projectId)}`, { method: 'GET' })
+  return normalizeAnalyzeResult(data)
 }
 
 /** POST /hardware */
