@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { fetchHardware, selectHardwareOption } from '@/api/api';
+import { selectHardwareOption } from '@/api/api';
 import type { HardwareComponent, ControllerComponent, HardwareOption, ControllerOption } from '@/api/types';
-import { useProjectStore, type ProjectState } from '@/store/state';
+import { useProjectStore } from '@/store/state';
 import { GlossaryText } from '@/components/GlossaryText';
 
 /** Extrahiert URL aus Markdown [Text](url) oder direktem String */
@@ -82,7 +82,12 @@ export const Step3Hardware: React.FC = () => {
     initHardware();
   }, [projectId, hardwareData, loadOrGenerateHardware]);
 
-  const handleSelectOption = async (targetId: string, optionId: string, isController = false) => {
+ const handleSelectOption = async (targetId: string, optionId: string, isController = false) => {
+    if (!projectId) return; // <- Verhindert die Ausführung, wenn projectId null ist
+
+    // Lokale Kopie für TypeScript sichern:
+    const currentProjectId = projectId;
+
     if (isController) {
       setControllers((prev) =>
         prev.map((ctrl) =>
@@ -115,13 +120,16 @@ export const Step3Hardware: React.FC = () => {
 
     setSaving(true);
     try {
-      await selectHardwareOption(projectId, [{ target_id: targetId, option_id: optionId }]);
+      // currentProjectId ist hier garantiert string und niemals null:
+      await selectHardwareOption(currentProjectId, [{ target_id: targetId, option_id: optionId }]);
     } catch (err) {
       console.error('Fehler beim Speichern der Auswahl:', err);
     } finally {
       setSaving(false);
     }
   };
+
+
 
   if (loading) {
     return (
