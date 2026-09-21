@@ -29,18 +29,38 @@ function cleanCost(cost: string | null | undefined): string {
 }
 
 export const Step3Hardware: React.FC = () => {
-  const projectId = useProjectStore((state: ProjectState) => (state as any).projectId || (state as any).project_id);
+  const projectId = useProjectStore((s) => s.projectId);
+  const hardwareData = useProjectStore((s) => s.hardwareData); //  Holt vorhandene Hardware
+  const setHardwareData = useProjectStore((s) => s.setHardwareData); 
+  const loadOrGenerateHardware = useProjectStore((s) => s.loadOrGenerateHardware); 
 
   const [components, setComponents] = useState<HardwareComponent[]>([]);
   const [controllers, setControllers] = useState<ControllerComponent[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  // Startet nur als loading, wenn WIRKLICH noch keine Daten im Store sind:
+  const [loading, setLoading] = useState<boolean>(!hardwareData);
   const [saving, setSaving] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // 1. Wenn hardwareData im Store existiert, sofort in die Ansicht übernehmen:
   useEffect(() => {
-    async function loadData() {
+    if (hardwareData) {
+      if (hardwareData.hardware_components) setComponents(hardwareData.hardware_components);
+      if (hardwareData.controllers) setControllers(hardwareData.controllers);
+      setLoading(false);
+    }
+  }, [hardwareData]);
+
+  // 2. Nur wenn noch KEINE Hardware im Store existiert, wird geladen/generiert:
+  useEffect(() => {
+    async function initHardware() {
       if (!projectId) {
         setErrorMessage('Keine aktive Projekt-ID gefunden. Bitte starte bei Schritt 1.');
+        setLoading(false);
+        return;
+      }
+
+      // Wenn Daten schon da sind: Gar nichts tun, Ladekringel sofort aus!
+      if (hardwareData) {
         setLoading(false);
         return;
       }
@@ -48,23 +68,19 @@ export const Step3Hardware: React.FC = () => {
       setLoading(true);
       setErrorMessage(null);
       try {
-        const data = await fetchHardware(projectId, 'Ermittle Hardware für das Projekt');
-        if (data?.hardware_components) {
-          setComponents(data.hardware_components);
-        }
-        if (data?.controllers) {
-          setControllers(data.controllers);
-        }
+        const data = await loadOrGenerateHardware();
+        if (data?.hardware_components) setComponents(data.hardware_components);
+        if (data?.controllers) setControllers(data.controllers);
       } catch (err: any) {
         console.error('Fehler beim Laden der Hardware:', err);
-        setErrorMessage(err.message || 'Hardware konnte nicht vom Backend geladen werden.');
+        setErrorMessage(err.message || 'Hardware konnte nicht geladen werden.');
       } finally {
         setLoading(false);
       }
     }
 
-    loadData();
-  }, [projectId]);
+    initHardware();
+  }, [projectId, hardwareData, loadOrGenerateHardware]);
 
   const handleSelectOption = async (targetId: string, optionId: string, isController = false) => {
     if (isController) {

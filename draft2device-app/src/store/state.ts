@@ -6,21 +6,35 @@ import {
   formatAnswersAsMessage,
   resetMockState,
   toApiError,
+  getLatestAnalysis,
+  getLatestHardwareSelection,
+  getCircuitDiagram,
+  fetchHardware,
+  selectHardwareOption,
 } from '@/api/api'
-import type { AnalyzeResult, AnswersMap, OpenQuestion } from '@/api/types'
+import type {
+  AnalyzeResult,
+  AnswersMap,
+  OpenQuestion,
+  HardwareResult,
+  CircuitDiagramResponse,
+  HardwareSelectionItem,
+} from '@/api/types'
 
 export type ProjectStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 export interface ProjectState {
-  // --- Bestehende Server & API Felder ---
+  // --- Server & Pipeline Felder ---
   projectId: string | null
   structure: AnalyzeResult | null
+  hardwareData: HardwareResult | null
+  circuitData: CircuitDiagramResponse | null
+  activeStep: number
   status: ProjectStatus
   error: ApiError | null
-  /** Zählt jede Aktualisierung der Struktur — entspricht dem "v3" in der IR-Leiste. */
   version: number
 
-  // --- NEU: Formular-Eingaben aus den Schritten 1–4 ---
+  // --- Formular-Eingaben ---
   sketchFile: File | null
   notes: string
   performancePriority: number
@@ -30,14 +44,17 @@ export interface ProjectState {
   secondaryHardwareIds: string[]
   structureAdjustments: string
 
-  // --- Bestehende Setters ---
+  // --- Setters ---
   setProjectId: (id: string | null) => void
   setStructure: (structure: AnalyzeResult) => void
   setStatus: (status: ProjectStatus) => void
   setError: (error: ApiError | null) => void
   reset: () => void
+  setActiveStep: (step: number) => void
+  setHardwareData: (hardware: HardwareResult | null) => void
+  setCircuitData: (circuit: CircuitDiagramResponse | null) => void
 
-  // --- NEU: Setters für Schritt 1–4 ---
+  // --- Formular-Setters ---
   setSketchFile: (file: File | null) => void
   setNotes: (notes: string) => void
   setPerformancePriority: (val: number) => void
@@ -48,9 +65,9 @@ export interface ProjectState {
   toggleSecondaryHardware: (id: string) => void
   setStructureAdjustments: (adj: string) => void
 
-  // --- API Calls ---
+  // --- Pipeline Actions & Data Hydration ---
   startProject: (name?: string) => Promise<string>
-  /** Überarbeitete submitAnalyze: Kann optional ohne Parameter aufgerufen werden und nutzt dann die Daten aus dem Store. */
+  loadProject: (projectId: string) => Promise<void>
   submitAnalyze: (input?: {
     message?: string
     imageFile?: File | null
@@ -60,47 +77,39 @@ export interface ProjectState {
     answers: AnswersMap,
     extraPrompt?: string,
   ) => Promise<AnalyzeResult | null>
+  loadOrGenerateHardware: () => Promise<HardwareResult | null>
+  chooseHardware: (selections: HardwareSelectionItem[]) => Promise<HardwareResult | null>
+  loadOrGenerateCircuit: () => Promise<CircuitDiagramResponse | null>
 }
 
 const initialState = {
-  // API State
+  // API & Pipeline State
   projectId: null,
   structure: null,
-  status: 'idle',
+  hardwareData: null,
+  circuitData: null,
+  activeStep: 1,
+  status: 'idle' as ProjectStatus,
   error: null,
   version: 0,
 
-  // NEU: Schritt 1-4 Initialwerte
+  // Schritt 1-4 Formular-Werte
   sketchFile: null,
   notes: '',
   performancePriority: 50,
-  uiTheme: '',
+  uiTheme: '' as const,
   openPrompt: '',
   primaryHardwareId: '',
-  secondaryHardwareIds: [],
+  secondaryHardwareIds: [] as string[],
   structureAdjustments: '',
-} satisfies Pick<
-  ProjectState,
-  | 'projectId'
-  | 'structure'
-  | 'status'
-  | 'error'
-  | 'version'
-  | 'sketchFile'
-  | 'notes'
-  | 'performancePriority'
-  | 'uiTheme'
-  | 'openPrompt'
-  | 'primaryHardwareId'
-  | 'secondaryHardwareIds'
-  | 'structureAdjustments'
->
+}
 
 export const useProjectStore = create<ProjectState>()((set, get) => ({
   ...initialState,
 
-  // Bestehende Setters
+  // Setters
   setProjectId: (projectId) => set({ projectId }),
+  setActiveStep: (activeStep) => set({ activeStep }),
 
   setStructure: (structure) =>
     set((state) => ({
@@ -111,11 +120,11 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
       projectId: structure.project_id || state.projectId,
     })),
 
+  setHardwareData: (hardwareData) => set({ hardwareData }),
+  setCircuitData: (circuitData) => set({ circuitData }),
   setStatus: (status) => set({ status }),
-
   setError: (error) => set({ error, status: error ? 'error' : get().status }),
 
-  // NEU: Setters für Formularfelder
   setSketchFile: (sketchFile) => set({ sketchFile }),
   setNotes: (notes) => set({ notes }),
   setPerformancePriority: (performancePriority) => set({ performancePriority }),
@@ -141,6 +150,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     set({ ...initialState })
   },
 
+  // Projekt-Aktionen
   startProject: async (name) => {
     const existing = get().projectId
     if (existing) return existing
@@ -150,6 +160,38 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     return projectId
   },
 
+  loadProject: async (projectId: string) => {
+    set({ status: 'loading', error: null, projectId })
+    let reachedStep = 1
+
+    try {
+      // 1. Analyse laden
+      try {
+        const structure = await getLatestAnalysis(projectId)
+        set({ structure })
+        reachedStep = 2
+      } catch {}
+
+      // 2. Hardware laden
+      try {
+        const hardwareData = await getLatestHardwareSelection(projectId)
+        set({ hardwareData })
+        reachedStep = 3
+      } catch {}
+
+      // 3. Schaltplan laden
+      try {
+        const circuitData = await getCircuitDiagram(projectId)
+        set({ circuitData })
+        reachedStep = 4
+      } catch {}
+
+      set({ activeStep: reachedStep, status: 'ready' })
+    } catch (err) {
+      set({ status: 'error', error: toApiError(err) })
+    }
+  },
+
   submitAnalyze: async (input) => {
     set({ status: 'loading', error: null })
 
@@ -157,7 +199,6 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
       const state = get()
       const projectId = await state.startProject()
 
-      // Kombiniert alle Eingaben aus Schritt 1 bis 4 automatisch zu einer Nachricht
       const combinedMessage =
         input?.message ||
         [
@@ -172,11 +213,11 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
           .join('\n') ||
         'Standard-Analyse gestartet'
 
-      // Nimmt das manuell übergebene Bild ODER die hochgeladene Skizze aus Schritt 1
       const imageFile = input?.imageFile !== undefined ? input.imageFile : state.sketchFile
 
       const structure = await analyze({ projectId, message: combinedMessage, imageFile })
       get().setStructure(structure)
+      set({ activeStep: 2 })
       return structure
     } catch (caught) {
       set({ status: 'error', error: toApiError(caught) })
@@ -197,6 +238,59 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     }
 
     return get().submitAnalyze({ message })
+  },
+
+  loadOrGenerateHardware: async () => {
+    const { projectId, hardwareData } = get()
+    if (!projectId) return null
+    if (hardwareData) return hardwareData
+
+    set({ status: 'loading' })
+    try {
+      try {
+        const existing = await getLatestHardwareSelection(projectId)
+        set({ hardwareData: existing, status: 'ready' })
+        return existing
+      } catch {
+        const generated = await fetchHardware(projectId)
+        set({ hardwareData: generated, status: 'ready' })
+        return generated
+      }
+    } catch (err) {
+      set({ status: 'error', error: toApiError(err) })
+      return null
+    }
+  },
+
+  chooseHardware: async (selections) => {
+    const { projectId } = get()
+    if (!projectId) return null
+
+    set({ status: 'loading' })
+    try {
+      const result = await selectHardwareOption(projectId, selections)
+      set({ hardwareData: result, status: 'ready' })
+      return result
+    } catch (err) {
+      set({ status: 'error', error: toApiError(err) })
+      return null
+    }
+  },
+
+  loadOrGenerateCircuit: async () => {
+    const { projectId, circuitData } = get()
+    if (!projectId) return null
+    if (circuitData) return circuitData
+
+    set({ status: 'loading' })
+    try {
+      const circuit = await getCircuitDiagram(projectId)
+      set({ circuitData: circuit, status: 'ready' })
+      return circuit
+    } catch (err) {
+      set({ status: 'error', error: toApiError(err) })
+      return null
+    }
   },
 }))
 
