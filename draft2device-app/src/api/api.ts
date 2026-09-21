@@ -32,6 +32,10 @@ import type {
   ComponentCategory,
   Project,
   ProjectListResponse,
+  // Code-Typen:
+  GeneratedFile,
+  ConfigQuestion,
+  GeneratedCodeResult,
 } from '@/api/types'
 
 // ---------------------------------------------------------------------------
@@ -655,4 +659,97 @@ export async function extractAndExplainTerms(text: string): Promise<ExtractedTer
     console.warn('Glossar-Abfrage fehlgeschlagen (Fallback aktiv):', error)
     return []
   }
+// ---------------------------------------------------------------------------
+// Code-Endpunkte (/code)
+// ---------------------------------------------------------------------------
+
+function normalizeGeneratedFile(raw: unknown): GeneratedFile {
+  const r = asRecord(raw)
+  return { path: asString(r.path), content: asString(r.content) }
+}
+
+function normalizeConfigQuestion(raw: unknown): ConfigQuestion {
+  const r = asRecord(raw)
+  const inputType = asString(r.input_type, 'text')
+  const options = Array.isArray(r.options) ? asStringArray(r.options) : null
+
+  return {
+    key: asString(r.key),
+    question: asString(r.question),
+    example: typeof r.example === 'string' ? r.example : null,
+    input_type:
+      inputType === 'slider' || inputType === 'single_choice' ? inputType : 'text',
+    min: typeof r.min === 'number' ? r.min : null,
+    max: typeof r.max === 'number' ? r.max : null,
+    options: options && options.length > 0 ? options : null,
+  }
+}
+
+export function normalizeGeneratedCodeResult(raw: unknown): GeneratedCodeResult {
+  const r = asRecord(raw)
+  const unanswered = asArray(r.unanswered).map(normalizeConfigQuestion)
+
+  return {
+    project_id: asString(r.project_id),
+    files: asArray(r.files).map(normalizeGeneratedFile),
+    config_questions: asArray(r.config_questions).map(normalizeConfigQuestion),
+    ...(unanswered.length > 0 ? { unanswered } : {}),
+  }
+}
+
+/**
+ * POST /code — erzeugt den Quellcode aus dem zuletzt gespeicherten Schaltplan.
+ * Optional lässt sich per `message` bereits generierter Code korrigieren.
+ */
+export async function generateCode(
+  projectId: string,
+  message?: string | null,
+): Promise<GeneratedCodeResult> {
+  if (!projectId) {
+    throw new ApiError('client', 'Kein aktives Projekt vorhanden.')
+  }
+
+  const data = await request('/code', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ project_id: projectId, message: message || null }),
+  })
+
+  return normalizeGeneratedCodeResult(data)
+}
+
+/**
+ * GET /code/{project_id} — lädt den zuletzt generierten Code ohne neuen KI-Aufruf.
+ * Platzhalter sind serverseitig bereits mit Antworten bzw. Defaults gefüllt.
+ */
+export async function getLatestCode(projectId: string): Promise<GeneratedCodeResult> {
+  if (!projectId) {
+    throw new ApiError('client', 'Kein aktives Projekt vorhanden.')
+  }
+
+  const data = await request(`/code/${projectId}`, { method: 'GET' })
+  return normalizeGeneratedCodeResult(data)
+}
+
+/** POST /code/{project_id}/answers — beantwortet offene config_questions. */
+export async function answerCodeQuestions(
+  projectId: string,
+  answers: Record<string, string>,
+): Promise<GeneratedCodeResult> {
+  if (!projectId) {
+    throw new ApiError('client', 'Kein aktives Projekt vorhanden.')
+  }
+
+  const data = await request(`/code/${encodeURIComponent(projectId)}/answers`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ answers }),
+  })
+
+  return normalizeGeneratedCodeResult(data)
+}
+
+/** GET /code/{project_id}/download — ZIP-Archiv mit allen generierten Dateien. */
+export function codeDownloadUrl(projectId: string): string {
+  return `/code/${encodeURIComponent(projectId)}/download`
 }
