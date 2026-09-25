@@ -283,3 +283,41 @@ export interface CircuitDiagramResponse extends CircuitDiagram {
   hardware_components_input: any;
   hardware_updated: boolean;
 }
+
+// ==========================================
+// Code-Endpoints (/code)
+// ==========================================
+
+/** Eine vom Modell generierte Datei, z. B. "platformio.ini" oder "src/main.cpp". */
+export interface GeneratedFile {
+  path: string;
+  content: string;
+}
+
+/**
+ * Ein Wert, der sich nicht aus Schaltplan/Konzept ableiten lässt (WLAN-SSID,
+ * Server-Adresse, Schwellenwert …) und den die Nutzer:in beantworten kann.
+ * `key` entspricht exakt einem "{{KEY}}"-Platzhalter in den Dateien.
+ */
+export interface ConfigQuestion {
+  key: string;
+  question: string;
+  /** Vorgeschlagener Default — wird eingesetzt, solange die Frage offen ist. */
+  example: string | null;
+  input_type: 'text' | 'slider' | 'single_choice';
+  /** Nur bei input_type === 'slider'. */
+  min: number | null;
+  /** Nur bei input_type === 'slider'. */
+  max: number | null;
+  /** Nur bei input_type === 'single_choice'. */
+  options: string[] | null;
+}
+
+/** Antwort von GET /code/{project_id} bzw. POST /code/{project_id}/answers. */
+export interface GeneratedCodeResult {
+  project_id: string;
+  files: GeneratedFile[];
+  config_questions: ConfigQuestion[];
+  /** Nur bei POST …/answers: noch offene Fragen (ohne echte Antwort). */
+  unanswered?: ConfigQuestion[];
+}

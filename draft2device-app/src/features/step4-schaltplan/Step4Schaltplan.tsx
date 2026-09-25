@@ -176,6 +176,33 @@ export const Step4Schaltplan: React.FC = () => {
     );
   }
 
+  // Leerer Schaltplan: kann passieren, wenn die Hardware-Auswahl keine
+  // Bauteile enthielt und der Schaltplan deshalb ohne Komponenten erzeugt
+  // wurde. Wichtig als eigener Zweig, weil die Fallback-Liste
+  // [data.components[0]] sonst [undefined] ergäbe und der Zugriff auf
+  // comp.id die komplette App zum Absturz brächte (weißer Bildschirm).
+  if (data.components.length === 0) {
+    return (
+      <div className="space-y-6 w-full max-w-full">
+        <div>
+          <h2 className="text-2xl font-bold font-sans text-[#1E2430]">
+            Schritt 4 · Schaltplan
+          </h2>
+        </div>
+        <div className="rounded-xl border border-[#C46A2B]/40 bg-orange-50/40 p-6">
+          <p className="text-sm font-semibold text-[#1E2430] mb-1">
+            Der Schaltplan enthält keine Bauteile.
+          </p>
+          <p className="text-xs text-[#5A6172] leading-relaxed">
+            Das passiert, wenn für dieses Projekt noch keine Hardware-Auswahl
+            gespeichert ist oder die Auswahl leer war. Prüfe Schritt 3 und
+            erzeuge den Schaltplan danach erneut.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Komponenten-Aufteilung
   const controllers = data.components.filter(
     (c) => c.category === 'Microcontroller' || c.name.toLowerCase().includes('esp32') || c.name.toLowerCase().includes('pico')

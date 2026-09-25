@@ -228,3 +228,38 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.25; }
 }
+
+/* ---------------------------------------------------------------------------
+   Druck / PDF-Export (Schritt 6 "Als PDF speichern")
+   --------------------------------------------------------------------------- */
+
+/* Verhindert, dass Karten/Zustandsblöcke über einen Seitenumbruch zerrissen werden. */
+.print-break-avoid {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  /* Signalfarben und Pin-Punkte im Schaltplan sollen im PDF erhalten bleiben. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Lange Code-Zeilen im PDF umbrechen, statt sie rechts abzuschneiden. */
+  pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow: visible;
+  }
+
+  /* Keine Scroll-Begrenzungen im Ausdruck — es soll alles sichtbar sein. */
+  .print-scroll-reset {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
