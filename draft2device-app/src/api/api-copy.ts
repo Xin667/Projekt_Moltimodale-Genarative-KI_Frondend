@@ -620,6 +620,6 @@ export async function getCircuitDiagram(projectId: string): Promise<CircuitDiagr
     throw new ApiError('client', 'Kein aktives Projekt vorhanden.')
   }
 
-  const data = await request(`/circuit-diagram/${projectId}`, { method: 'GET' })
+  const data = await request(`/circuit-diagram/${encodeURIComponent(projectId)}`, { method: 'GET' })
   return normalizeCircuitDiagramResult(data)
 }
