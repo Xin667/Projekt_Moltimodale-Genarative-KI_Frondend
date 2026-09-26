@@ -666,7 +666,7 @@ export async function extractAndExplainTerms(text: string): Promise<ExtractedTer
   } catch (error) {
     console.warn('Glossar-Abfrage fehlgeschlagen (Fallback aktiv):', error)
     return []
-  }
+  }}
 // ---------------------------------------------------------------------------
 // Code-Endpunkte (/code)
 // ---------------------------------------------------------------------------

@@ -21,6 +21,7 @@ export default function AppShowcase() {
   const { currentStep, maxStepReached, setCurrentStep } = useAppStore();
   const startProject = useProjectStore((s) => s.startProject);
   const setProjectId = useProjectStore((s) => s.setProjectId);
+  const loadProject = useProjectStore((s) => s.loadProject);
 
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -58,12 +59,18 @@ export default function AppShowcase() {
     );
   }
 
-  function handleSelectProject(projectId: string) {
-    setProjectId(projectId);
-    setCurrentProjectId(projectId);
-    sessionStorage.setItem('projectId', projectId);
-    setHasStarted(true);
-  }
+ async function handleSelectProject(projectId: string) {
+  setCurrentProjectId(projectId);
+  sessionStorage.setItem('projectId', projectId);
+  setHasStarted(true);
+
+  // Lädt Analyse, Hardware und Schaltplan via GET aus dem Backend:
+  await loadProject(projectId);
+
+  // Stepper auf den zuletzt erreichten Schritt setzen:
+  const reachedStep = useProjectStore.getState().activeStep;
+  setCurrentStep(reachedStep);
+}
 
   function handleDeleteProject(projectId: string) {
     if (projectId !== currentProjectId) return;
