@@ -1,4 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Check, Copy } from 'lucide-react';
+import JSZip from 'jszip';
+import type { GeneratedCodeResult } from '@/api/types';
 import { useProjectStore, type ProjectState } from '@/store/state';
 import {
   getCircuitDiagram,
@@ -40,67 +43,167 @@ export function Step6Ergebnis() {
   const [code, setCode] = useState<GeneratedCodeResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [codeResult, setCodeResult] = useState<GeneratedCodeResult | null>(null);
+  const [activeFilePath, setActiveFilePath] = useState('');
+  const [codeLoading, setCodeLoading] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [codeError, setCodeError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  /**
+   * Projekt-Code laden.
+   *
+   * AbortController verhindert, dass ein veralteter Request
+   * nach einem projectId-Wechsel noch State aktualisiert.
+   */
+  useEffect(() => {
     if (!projectId) {
-      setLoading(false);
+      setCodeResult(null);
+      setActiveFilePath('');
+      setCodeLoading(false);
+      setCodeError(null);
       return;
     }
 
-    setLoading(true);
-    // Jeder Abschnitt darf einzeln fehlen (z. B. wenn ein Schritt noch nicht
-    // durchlaufen wurde) — deshalb allSettled statt Promise.all.
-    const [diagramResult, hardwareResult, codeResult] = await Promise.allSettled([
-      getCircuitDiagram(projectId),
-      getLatestHardwareSelection(projectId),
-      getLatestCode(projectId),
-    ]);
+    const controller = new AbortController();
 
-    setDiagram(diagramResult.status === 'fulfilled' ? diagramResult.value : null);
-    setHardware(hardwareResult.status === 'fulfilled' ? hardwareResult.value : null);
-    setCode(codeResult.status === 'fulfilled' ? codeResult.value : null);
-    setLoading(false);
+    const loadCode = async () => {
+      setCodeLoading(true);
+      setCodeError(null);
+
+      try {
+        const response = await fetch(
+          `/code/${encodeURIComponent(projectId)}`,
+          { signal: controller.signal },
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Code konnte nicht geladen werden (HTTP ${response.status}).`,
+          );
+        }
+
+        const result = (await response.json()) as GeneratedCodeResult;
+
+        setCodeResult(result);
+        setActiveFilePath(result.files[0]?.path ?? '');
+      } catch (error: unknown) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return;
+        }
+
+        setCodeError(
+          error instanceof Error
+            ? error.message
+            : 'Code konnte nicht geladen werden.',
+        );
+        setCodeResult(null);
+        setActiveFilePath('');
+      } finally {
+        if (!controller.signal.aborted) {
+          setCodeLoading(false);
+        }
+      }
+    };
+
+    void loadCode();
+
+    return () => controller.abort();
   }, [projectId]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  /**
+   * Exportdaten nur neu erzeugen, wenn sich die relevanten
+   * Projektdaten tatsächlich ändern.
+   */
+  const summaryData = useMemo(
+    () => ({
+      project_id: projectId,
+      project_metadata: structure?.project_metadata ?? null,
+      states: structure?.states ?? null,
+      sensors: structure?.sensors ?? null,
+      actuators: structure?.actuators ?? null,
+    }),
+    [projectId, structure],
+  );
 
-  const bom = hardware ? buildBom(hardware) : [];
+  const summaryJson = useMemo(
+    () => JSON.stringify(summaryData, null, 2),
+    [summaryData],
+  );
 
-  const summaryData = {
-    project_id: projectId,
-    project_metadata: structure?.project_metadata ?? null,
-    states: structure?.states ?? null,
-    hardware: bom,
-    circuit_diagram: diagram
-      ? {
-          title: diagram.title,
-          summary: diagram.summary,
-          components: diagram.components.map((c) => ({ id: c.id, name: c.name })),
-          assembly_steps: diagram.assembly_steps,
-        }
-      : null,
-    code_files: code?.files.map((f) => f.path) ?? null,
+  /**
+   * Wenn die aktuell gewählte Datei nicht mehr existiert,
+   * automatisch auf die erste Datei zurückfallen.
+   */
+  const activeCodeFile = useMemo(() => {
+    if (!codeResult?.files.length) {
+      return undefined;
+    }
+
+    return (
+      codeResult.files.find((file) => file.path === activeFilePath) ??
+      codeResult.files[0]
+    );
+  }, [codeResult, activeFilePath]);
+
+  const handleCopyCode = async () => {
+    if (!activeCodeFile) return;
+
+    try {
+      await navigator.clipboard.writeText(activeCodeFile.content);
+      setCodeCopied(true);
+
+      window.setTimeout(() => {
+        setCodeCopied(false);
+      }, 2000);
+    } catch {
+      setCodeError('Code konnte nicht in die Zwischenablage kopiert werden.');
+    }
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(JSON.stringify(summaryData, null, 2));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(summaryJson);
+      setCopied(true);
+
+      window.setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch {
+      setCodeError('JSON konnte nicht in die Zwischenablage kopiert werden.');
+    }
   };
 
-  const handleDownloadJSON = () => {
-    const blob = new Blob([JSON.stringify(summaryData, null, 2)], {
-      type: 'application/json;charset=utf-8',
+  const handleDownloadJSON = async () => {
+    const zip = new JSZip();
+
+    zip.file('project_result.json', summaryJson);
+
+    for (const file of codeResult?.files ?? []) {
+      zip.file(file.path, file.content);
+    }
+
+    const blob = await zip.generateAsync({
+      type: 'blob',
+      compression: 'DEFLATE',
+      compressionOptions: {
+        level: 6,
+      },
     });
+
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'project_result.json';
+
+    link.href = url;
+    link.download = `${projectId || 'draft2device'}_export.zip`;
+
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(link.href);
+    link.remove();
+
+    // URL erst nach dem Download-Vorgang freigeben.
+    window.setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 1000);
   };
 
   if (loading) {
@@ -113,8 +216,7 @@ export function Step6Ergebnis() {
   }
 
   return (
-    <div className="space-y-6 w-full max-w-full print:p-0">
-      {/* Header & Export-Aktionen */}
+    <div className="w-full max-w-full space-y-6 print:p-0">
       <div className="space-y-4 border-b border-[#D9D3C7] pb-5">
         <div>
           <h2 className="text-2xl font-bold font-sans text-[#1E2430]">
@@ -129,24 +231,26 @@ export function Step6Ergebnis() {
         <div className="flex flex-wrap items-center gap-3 print:hidden">
           <button
             type="button"
-            onClick={handleDownloadJSON}
-            className="flex items-center gap-2 px-4 py-2 bg-[#C46A2B] hover:bg-[#A85820] text-white rounded-full text-xs font-semibold shadow-sm transition-all whitespace-nowrap active:scale-95"
+            onClick={() => void handleDownloadJSON()}
+            className="rounded-full bg-[#C46A2B] px-4 py-2 text-xs font-semibold text-white"
           >
-            <span>📄</span> JSON herunterladen
+            📦 JSON + Quellcode als ZIP
           </button>
+
           <button
             type="button"
-            onClick={handleCopy}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1E2430] hover:bg-black text-white rounded-full text-xs font-semibold shadow-sm transition-all whitespace-nowrap active:scale-95"
+            onClick={() => void handleCopy()}
+            className="rounded-full bg-[#1E2430] px-4 py-2 text-xs font-semibold text-white"
           >
             {copied ? '✓ Kopiert' : 'JSON kopieren'}
           </button>
+
           <button
             type="button"
             onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-[#007A5A] hover:bg-[#00664B] text-white rounded-full text-xs font-semibold shadow-sm transition-all whitespace-nowrap active:scale-95"
+            className="rounded-full bg-[#007A5A] px-4 py-2 text-xs font-semibold text-white"
           >
-            <span>🖨️</span> Als PDF speichern
+            🖨️ Als PDF speichern
           </button>
         </div>
       </div>
@@ -309,6 +413,101 @@ export function Step6Ergebnis() {
         </section>
       )}
 
+      {/* Code-Ergebnis */}
+      <div className="overflow-hidden rounded-2xl border border-gray-800 bg-[#12151B] shadow-xl">
+        <div className="flex min-h-12 items-end border-b border-gray-800 bg-[#1A1E27]">
+          <div className="flex shrink-0 items-center gap-1.5 self-stretch px-4">
+            <span className="h-2.5 w-2.5 rounded-full bg-red-500/80" />
+            <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/80" />
+            <span className="h-2.5 w-2.5 rounded-full bg-green-500/80" />
+          </div>
+
+          <div className="flex min-w-0 flex-1 self-stretch overflow-x-auto">
+            {codeResult?.files.map((file) => {
+              const isActive = file.path === activeCodeFile?.path;
+
+              return (
+                <button
+                  key={file.path}
+                  type="button"
+                  onClick={() => setActiveFilePath(file.path)}
+                  className={[
+                    'min-w-0 flex-1 truncate border-r border-[#2B313F]',
+                    'px-3 text-xs font-mono',
+                    isActive
+                      ? 'border-t border-t-[#C46A2B] bg-[#12151B] text-gray-200'
+                      : 'text-gray-500 hover:text-gray-300',
+                  ].join(' ')}
+                  aria-selected={isActive}
+                  role="tab"
+                >
+                  {file.path}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void handleCopyCode()}
+            disabled={!activeCodeFile}
+            title="Aktuelle Code-Datei kopieren"
+            aria-label="Aktuelle Code-Datei kopieren"
+            className="mr-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-400 hover:bg-[#2B313F] hover:text-white disabled:opacity-40"
+          >
+            {codeCopied ? (
+              <Check size={16} aria-hidden="true" />
+            ) : (
+              <Copy size={16} aria-hidden="true" />
+            )}
+          </button>
+        </div>
+
+        <div
+          className={[
+            'border-b border-[#2B313F] bg-[#1A1E27]',
+            'px-4 py-2 text-xs font-mono',
+            codeError ? 'text-red-400' : 'text-gray-400',
+          ].join(' ')}
+        >
+          {codeLoading
+            ? 'Code wird geladen...'
+            : codeError || ''}
+        </div>
+
+        <div className="min-h-[360px] max-h-[520px] overflow-x-auto p-4">
+          <pre className="text-xs font-mono leading-relaxed text-emerald-400">
+            <code>
+              {activeCodeFile?.content ||
+                'Noch keine Code-Ergebnisse vorhanden.'}
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      {/* JSON-Ausgabe */}
+      <div className="overflow-hidden rounded-2xl border border-gray-800 bg-[#12151B] shadow-xl">
+        <div className="flex items-center justify-between border-b border-gray-800 bg-[#1A1E27] px-4 py-2.5">
+          <div className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-red-500/80" />
+            <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/80" />
+            <span className="h-2.5 w-2.5 rounded-full bg-green-500/80" />
+
+            <span className="ml-3 font-mono text-xs text-gray-400">
+              project_result.json
+            </span>
+          </div>
+        </div>
+
+        <div className="min-h-[300px] max-h-[480px] overflow-x-auto p-4">
+          <pre className="font-mono text-xs leading-relaxed text-amber-300">
+            <code>{summaryJson}</code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  );
+}
       {/* 1.2 Hardware-Stückliste */}
       {bom.length > 0 && (
         <section className="print-break-avoid">
