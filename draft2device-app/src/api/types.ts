@@ -105,6 +105,28 @@ export interface AnalyzeParams {
 /** Antworten des Nutzers, indiziert nach OpenQuestion.id. */
 export type AnswersMap = Record<string, string | string[]>;
 
+export interface GeneratedFile {
+  path: string;
+  content: string;
+}
+
+export interface ConfigQuestion {
+  key: string;
+  question: string;
+  example: string | null;
+  input_type: 'text' | 'slider' | 'single_choice';
+  min: number | null;
+  max: number | null;
+  options: string[] | null;
+}
+
+export interface GeneratedCodeResult {
+  project_id: string;
+  files: GeneratedFile[];
+  config_questions: ConfigQuestion[];
+  unanswered?: ConfigQuestion[];
+}
+
 // ==========================================
 // Hardware-Endpoints (/hardware, /hardware/select)
 // ==========================================

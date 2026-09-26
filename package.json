@@ -6,5 +6,8 @@
     "build": "npm --prefix draft2device-app run build",
     "lint": "npm --prefix draft2device-app run lint",
     "preview": "npm --prefix draft2device-app run preview"
+  },
+  "dependencies": {
+    "jszip": "^3.10.2"
   }
 }
