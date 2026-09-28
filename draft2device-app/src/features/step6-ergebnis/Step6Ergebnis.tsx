@@ -34,15 +34,24 @@ export function Step6Ergebnis() {
   const [loading, setLoading] = useState(true);
   const [activeFilePath, setActiveFilePath] = useState('');
   const [copied, setCopied] = useState(false);
+  const [codeResult, setCodeResult] = useState<GeneratedCodeResult | null>(null);
+  const [activeFilePath, setActiveFilePath] = useState('');
+  const [codeLoading, setCodeLoading] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [codeError, setCodeError] = useState<string | null>(null);
 
+  /**
+   * Projekt-Code laden.
+   *
+   * AbortController verhindert, dass ein veralteter Request
+   * nach einem projectId-Wechsel noch State aktualisiert.
+   */
   useEffect(() => {
     if (!projectId) {
-      setDiagram(null);
-      setHardware(null);
       setCodeResult(null);
-      setLoading(false);
+      setActiveFilePath('');
+      setCodeLoading(false);
+      setCodeError(null);
       return;
     }
 
@@ -78,6 +87,46 @@ export function Step6Ergebnis() {
     };
 
     void loadAllResults();
+    const loadCode = async () => {
+      setCodeLoading(true);
+      setCodeError(null);
+
+      try {
+        const response = await fetch(
+          `/code/${encodeURIComponent(projectId)}`,
+          { signal: controller.signal },
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Code konnte nicht geladen werden (HTTP ${response.status}).`,
+          );
+        }
+
+        const result = (await response.json()) as GeneratedCodeResult;
+
+        setCodeResult(result);
+        setActiveFilePath(result.files[0]?.path ?? '');
+      } catch (error: unknown) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return;
+        }
+
+        setCodeError(
+          error instanceof Error
+            ? error.message
+            : 'Code konnte nicht geladen werden.',
+        );
+        setCodeResult(null);
+        setActiveFilePath('');
+      } finally {
+        if (!controller.signal.aborted) {
+          setCodeLoading(false);
+        }
+      }
+    };
+
+    void loadCode();
 
     return () => controller.abort();
   }, [projectId]);
@@ -86,6 +135,10 @@ export function Step6Ergebnis() {
     return hardware ? buildBom(hardware) : [];
   }, [hardware]);
 
+  /**
+   * Exportdaten nur neu erzeugen, wenn sich die relevanten
+   * Projektdaten tatsächlich ändern.
+   */
   const summaryData = useMemo(
     () => ({
       project_id: projectId,
@@ -127,6 +180,7 @@ export function Step6Ergebnis() {
 
   const handleDownloadJSON = async () => {
     const zip = new JSZip();
+
     zip.file('project_result.json', summaryJson);
 
     for (const file of codeResult?.files ?? []) {
@@ -147,7 +201,10 @@ export function Step6Ergebnis() {
     link.click();
     link.remove();
 
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    // URL erst nach dem Download-Vorgang freigeben.
+    window.setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 1000);
   };
 
   if (loading) {
@@ -267,7 +324,102 @@ export function Step6Ergebnis() {
         </section>
       )}
 
-      {/* Hardware-Stückliste */}
+      {/* Code-Ergebnis */}
+      <div className="overflow-hidden rounded-2xl border border-gray-800 bg-[#12151B] shadow-xl">
+        <div className="flex min-h-12 items-end border-b border-gray-800 bg-[#1A1E27]">
+          <div className="flex shrink-0 items-center gap-1.5 self-stretch px-4">
+            <span className="h-2.5 w-2.5 rounded-full bg-red-500/80" />
+            <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/80" />
+            <span className="h-2.5 w-2.5 rounded-full bg-green-500/80" />
+          </div>
+
+          <div className="flex min-w-0 flex-1 self-stretch overflow-x-auto">
+            {codeResult?.files.map((file) => {
+              const isActive = file.path === activeCodeFile?.path;
+
+              return (
+                <button
+                  key={file.path}
+                  type="button"
+                  onClick={() => setActiveFilePath(file.path)}
+                  className={[
+                    'min-w-0 flex-1 truncate border-r border-[#2B313F]',
+                    'px-3 text-xs font-mono',
+                    isActive
+                      ? 'border-t border-t-[#C46A2B] bg-[#12151B] text-gray-200'
+                      : 'text-gray-500 hover:text-gray-300',
+                  ].join(' ')}
+                  aria-selected={isActive}
+                  role="tab"
+                >
+                  {file.path}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void handleCopyCode()}
+            disabled={!activeCodeFile}
+            title="Aktuelle Code-Datei kopieren"
+            aria-label="Aktuelle Code-Datei kopieren"
+            className="mr-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-400 hover:bg-[#2B313F] hover:text-white disabled:opacity-40"
+          >
+            {codeCopied ? (
+              <Check size={16} aria-hidden="true" />
+            ) : (
+              <Copy size={16} aria-hidden="true" />
+            )}
+          </button>
+        </div>
+
+        <div
+          className={[
+            'border-b border-[#2B313F] bg-[#1A1E27]',
+            'px-4 py-2 text-xs font-mono',
+            codeError ? 'text-red-400' : 'text-gray-400',
+          ].join(' ')}
+        >
+          {codeLoading
+            ? 'Code wird geladen...'
+            : codeError || ''}
+        </div>
+
+        <div className="min-h-[360px] max-h-[520px] overflow-x-auto p-4">
+          <pre className="text-xs font-mono leading-relaxed text-emerald-400">
+            <code>
+              {activeCodeFile?.content ||
+                'Noch keine Code-Ergebnisse vorhanden.'}
+            </code>
+          </pre>
+        </div>
+      </div>
+
+      {/* JSON-Ausgabe */}
+      <div className="overflow-hidden rounded-2xl border border-gray-800 bg-[#12151B] shadow-xl">
+        <div className="flex items-center justify-between border-b border-gray-800 bg-[#1A1E27] px-4 py-2.5">
+          <div className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-red-500/80" />
+            <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/80" />
+            <span className="h-2.5 w-2.5 rounded-full bg-green-500/80" />
+
+            <span className="ml-3 font-mono text-xs text-gray-400">
+              project_result.json
+            </span>
+          </div>
+        </div>
+
+        <div className="min-h-[300px] max-h-[480px] overflow-x-auto p-4">
+          <pre className="font-mono text-xs leading-relaxed text-amber-300">
+            <code>{summaryJson}</code>
+          </pre>
+        </div>
+      </div>
+    </div>
+  );
+}
+      {/* 1.2 Hardware-Stückliste */}
       {bom.length > 0 && (
         <section className="print-break-avoid">
           <h3 className="text-sm font-bold text-[#1E2430] uppercase tracking-wider mb-3">
