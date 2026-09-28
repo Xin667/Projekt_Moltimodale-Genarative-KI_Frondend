@@ -29,10 +29,7 @@ export function Step6Ergebnis() {
 
   const [diagram, setDiagram] = useState<CircuitDiagramResponse | null>(null);
   const [hardware, setHardware] = useState<HardwareResult | null>(null);
-  const [codeResult, setCodeResult] = useState<GeneratedCodeResult | null>(null);
-
   const [loading, setLoading] = useState(true);
-  const [activeFilePath, setActiveFilePath] = useState('');
   const [copied, setCopied] = useState(false);
   const [codeResult, setCodeResult] = useState<GeneratedCodeResult | null>(null);
   const [activeFilePath, setActiveFilePath] = useState('');
@@ -416,9 +413,7 @@ export function Step6Ergebnis() {
           </pre>
         </div>
       </div>
-    </div>
-  );
-}
+
       {/* 1.2 Hardware-Stückliste */}
       {bom.length > 0 && (
         <section className="print-break-avoid">
