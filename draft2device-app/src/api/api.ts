@@ -3,6 +3,7 @@ import {
   MOCK_ANALYZE_REFINED,
   MOCK_PROJECT_ID,
 } from '@/mock/analyzeMock'
+
 import type {
   ActorEntity,
   AnalyzeParams,
@@ -760,4 +761,11 @@ export async function answerCodeQuestions(
 /** GET /code/{project_id}/download — ZIP-Archiv mit allen generierten Dateien. */
 export function codeDownloadUrl(projectId: string): string {
   return `/code/${encodeURIComponent(projectId)}/download`
+}
+export async function getLatestAnalysis(projectId: string): Promise<AnalyzeResult> {
+  const res = await fetch(`/analyze/${encodeURIComponent(projectId)}`);
+  if (!res.ok) {
+    throw new Error(`Fehler beim Laden der Analyse (HTTP ${res.status})`);
+  }
+  return res.json();
 }
